@@ -4,7 +4,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../flutter_flow/flutter_flow_theme.dart';
-import '../../services/mock_api.dart';
+import '../../models/models.dart';
+import '../../services/api_service.dart';
 import '../../widgets/common.dart';
 
 class SubmitMilestonePage extends StatefulWidget {
@@ -14,16 +15,27 @@ class SubmitMilestonePage extends StatefulWidget {
 }
 
 class _SubmitMilestonePageState extends State<SubmitMilestonePage> {
-  String _contract = 'JHS-RD-017';
+  String? _contract;
   int _milestone = 2;
   final List<XFile> _photos = [];
   Position? _pos;
   bool _locating = false;
   bool _locationValid = false;
   bool _submitting = false;
+  List<Project> _projects = [];
+  bool _loadingProjects = true;
 
   @override
-  void initState() { super.initState(); _getLocation(); }
+  void initState() { super.initState(); _loadProjects(); }
+
+  Future<void> _loadProjects() async {
+    try {
+      _projects = await ApiService.I.getProjects();
+      if (_projects.isNotEmpty) _contract = _projects.first.id;
+    } catch (_) {}
+    if (mounted) setState(() => _loadingProjects = false);
+    _getLocation();
+  }
 
   Future<void> _getLocation() async {
     setState(() => _locating = true);
@@ -35,9 +47,15 @@ class _SubmitMilestonePageState extends State<SubmitMilestonePage> {
             longitude: 78.5690, latitude: 25.4486,
             timestamp: DateTime.now(), accuracy: 10, altitude: 0, altitudeAccuracy: 0,
             heading: 0, headingAccuracy: 0, speed: 0, speedAccuracy: 0));
-      final proj = MockApi.I.projects.firstWhere((x) => x.id == _contract, orElse: () => MockApi.I.projects.first);
-      final d = Geolocator.distanceBetween(p.latitude, p.longitude, proj.lat, proj.lng);
-      setState(() { _pos = p; _locationValid = d <= 500; });
+      final proj = _projects.isNotEmpty
+          ? _projects.firstWhere((x) => x.id == _contract, orElse: () => _projects.first)
+          : null;
+      if (proj != null) {
+        final d = Geolocator.distanceBetween(p.latitude, p.longitude, proj.lat, proj.lng);
+        setState(() { _pos = p; _locationValid = d <= 500; });
+      } else {
+        setState(() { _pos = p; _locationValid = true; });
+      }
     } catch (_) {}
     if (mounted) setState(() => _locating = false);
   }
@@ -48,17 +66,28 @@ class _SubmitMilestonePageState extends State<SubmitMilestonePage> {
   }
 
   Future<void> _submit() async {
+    if (_contract == null) { _snack('Select a contract'); return; }
     if (!_locationValid) { _snack('GPS must match project location'); return; }
     if (_photos.length < 5) { _snack('At least 5 completion photos required'); return; }
     final proceed = await ImmutabilityDialog.show(context,
-        message: 'Submitting milestone $_milestone for $_contract.');
+        message: 'Submitting milestone $_milestone for contract.');
     if (!proceed) return;
     setState(() => _submitting = true);
-    final id = await MockApi.I.postMilestone(_contract, _milestone);
-    setState(() => _submitting = false);
-    if (!mounted) return;
-    _snack('Milestone $id submitted → 3-layer verification triggered');
-    context.pop();
+    try {
+      final id = await ApiService.I.postMilestone(
+        projectId: _contract!,
+        milestone: _milestone,
+        gpsLat: _pos!.latitude,
+        gpsLng: _pos!.longitude,
+        photos: _photos.map((p) => p.path).toList(),
+      );
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      _snack('Milestone $id submitted → 3-layer verification triggered');
+      context.pop();
+    } catch (e) {
+      if (mounted) { setState(() => _submitting = false); _snack('Error: $e'); }
+    }
   }
 
   void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
@@ -66,6 +95,9 @@ class _SubmitMilestonePageState extends State<SubmitMilestonePage> {
   @override
   Widget build(BuildContext context) {
     final t = FlutterFlowTheme.of(context);
+    if (_loadingProjects) {
+      return Scaffold(appBar: AppBar(title: const Text('Submit milestone')), body: const Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Submit milestone')),
       body: ListView(
@@ -74,9 +106,9 @@ class _SubmitMilestonePageState extends State<SubmitMilestonePage> {
           SectionCard(title: 'Contract', child: DropdownButtonFormField<String>(
             value: _contract,
             isExpanded: true,
-            items: MockApi.I.contracts.map((c) => DropdownMenuItem(
+            items: _projects.map((c) => DropdownMenuItem(
               value: c.id,
-              child: Text('${c.id} — ${c.name}', overflow: TextOverflow.ellipsis, maxLines: 1),
+              child: Text('${c.name}', overflow: TextOverflow.ellipsis, maxLines: 1),
             )).toList(),
             onChanged: (v) { setState(() => _contract = v!); _getLocation(); },
           )),

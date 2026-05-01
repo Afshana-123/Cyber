@@ -1,19 +1,44 @@
 import 'package:flutter/material.dart';
+import '../../app_state.dart';
 import '../../flutter_flow/flutter_flow_theme.dart';
 import '../../models/models.dart';
-import '../../services/mock_api.dart';
+import '../../services/api_service.dart';
 import '../../widgets/common.dart';
 
-class SchemeStatusPage extends StatelessWidget {
+class SchemeStatusPage extends StatefulWidget {
   const SchemeStatusPage({super.key});
   @override
+  State<SchemeStatusPage> createState() => _SchemeStatusPageState();
+}
+
+class _SchemeStatusPageState extends State<SchemeStatusPage> {
+  late Future<List<Scheme>> _schemesFut;
+
+  @override
+  void initState() {
+    super.initState();
+    _schemesFut = ApiService.I.getSchemes(AppState().districtId);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final t = FlutterFlowTheme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Scheme Status')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: MockApi.I.schemes.map((s) => _SchemeCard(s: s)).toList(),
+      body: FutureBuilder<List<Scheme>>(
+        future: _schemesFut,
+        builder: (ctx, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final schemes = snap.data ?? [];
+          if (schemes.isEmpty) {
+            return Center(child: Text('No schemes found', style: FlutterFlowTheme.of(context).bodyMedium));
+          }
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: schemes.map((s) => _SchemeCard(s: s)).toList(),
+          );
+        },
       ),
     );
   }
@@ -26,7 +51,7 @@ class _SchemeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = FlutterFlowTheme.of(context);
     final color = schemeColor(s.status, context);
-    final pct = (s.returned / s.allocated).clamp(0, 1).toDouble();
+    final pct = s.allocated > 0 ? (s.returned / s.allocated).clamp(0, 1).toDouble() : 0.0;
     return SectionCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [

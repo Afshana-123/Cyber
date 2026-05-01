@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../flutter_flow/flutter_flow_theme.dart';
-import '../../services/mock_api.dart';
+import '../../models/models.dart';
+import '../../services/api_service.dart';
+import '../../widgets/common.dart';
 
 class QrScanPage extends StatefulWidget {
   const QrScanPage({super.key});
@@ -11,54 +12,63 @@ class QrScanPage extends StatefulWidget {
 }
 
 class _QrScanPageState extends State<QrScanPage> {
-  final _ctrl = MobileScannerController();
-  bool _handled = false;
+  bool _loading = false;
+  List<Project> _projects = [];
 
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void initState() {
+    super.initState();
+    _loadProjects();
+  }
 
-  void _onDetect(BarcodeCapture cap) {
-    if (_handled) return;
-    final code = cap.barcodes.firstOrNull?.rawValue;
-    if (code == null) return;
-    _handled = true;
-    // Accept either a known project ID or any QR — fall back to first project
-    final match = MockApi.I.projects.any((p) => p.id == code)
-        ? code : MockApi.I.projects.first.id;
-    context.pushReplacement('/auditor/inspect?pid=$match');
+  Future<void> _loadProjects() async {
+    try {
+      _projects = await ApiService.I.getProjects();
+    } catch (_) {}
+    if (mounted) setState(() {});
+  }
+
+  void _onScan(String code) {
+    final match = _projects.any((p) => p.id == code);
+    final pid = match ? code : (_projects.isNotEmpty ? _projects.first.id : '');
+    context.pushReplacement('/auditor/inspect?pid=$pid');
   }
 
   @override
   Widget build(BuildContext context) {
     final t = FlutterFlowTheme.of(context);
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: const Text('Scan project QR'),
-      ),
-      body: Stack(children: [
-        MobileScanner(controller: _ctrl, onDetect: _onDetect),
-        Center(child: Container(
-          width: 260, height: 260,
-          decoration: BoxDecoration(border: Border.all(color: Colors.white, width: 3), borderRadius: BorderRadius.circular(20)),
-        )),
-        Positioned(
-          left: 0, right: 0, bottom: 40,
-          child: Column(children: [
-            const Text('Align the QR within the box', style: TextStyle(color: Colors.white)),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () {
-                _handled = true;
-                context.pushReplacement('/auditor/inspect?pid=${MockApi.I.projects.first.id}');
-              },
-              child: Text('Simulate scan (demo)', style: TextStyle(color: t.tertiary)),
+      appBar: AppBar(title: const Text('Scan QR')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Container(
+            width: 260, height: 260,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: t.primary, width: 2),
+              color: t.primaryBackground,
             ),
-          ]),
-        ),
-      ]),
+            child: Icon(Icons.qr_code_2, size: 120, color: t.primary.withOpacity(0.3)),
+          ),
+          const SizedBox(height: 24),
+          Text('Point camera at project QR code', style: t.bodyMedium),
+          const SizedBox(height: 24),
+          PrimaryButton(
+            label: 'Simulate scan (demo)',
+            icon: Icons.qr_code_scanner,
+            loading: _loading,
+            onPressed: () {
+              final pid = _projects.isNotEmpty ? _projects.first.id : '';
+              if (pid.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No projects loaded')));
+                return;
+              }
+              context.pushReplacement('/auditor/inspect?pid=$pid');
+            },
+          ),
+        ]),
+      ),
     );
   }
 }

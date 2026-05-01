@@ -2,18 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../app_state.dart';
 import '../../flutter_flow/flutter_flow_theme.dart';
-import '../../services/mock_api.dart';
+import '../../models/models.dart';
+import '../../services/api_service.dart';
 import '../../widgets/common.dart';
 
-class CitizenHomePage extends StatelessWidget {
+class CitizenHomePage extends StatefulWidget {
   const CitizenHomePage({super.key});
+  @override
+  State<CitizenHomePage> createState() => _CitizenHomePageState();
+}
+
+class _CitizenHomePageState extends State<CitizenHomePage> {
+  late Future<List<Project>> _projectsFut;
+  late Future<List<Scheme>> _schemesFut;
+
+  @override
+  void initState() {
+    super.initState();
+    final districtId = AppState().districtId;
+    _projectsFut = ApiService.I.getProjects(districtId: districtId);
+    _schemesFut = ApiService.I.getSchemes(districtId);
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = FlutterFlowTheme.of(context);
-    final api = MockApi.I;
     final district = AppState().district;
-    final hasFlagged = api.projects.any((p) => p.flagged);
 
     return Scaffold(
       appBar: AppBar(
@@ -28,43 +42,66 @@ class CitizenHomePage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (hasFlagged) const AlertBanner(text: 'A project in your district is flagged. Tap "Schemes" to see details.'),
           _HeroReportCta(),
           const SizedBox(height: 8),
-          SectionCard(
-            title: 'Active projects near me',
-            child: Column(children: api.projects.map((p) => Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: t.divider))),
-              child: Row(children: [
-                Container(
-                  width: 42, height: 42,
-                  decoration: BoxDecoration(color: t.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
-                  child: Icon(Icons.construction, color: t.primary),
+          FutureBuilder<List<Project>>(
+            future: _projectsFut,
+            builder: (ctx, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const SectionCard(child: Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())));
+              }
+              final projects = snap.data ?? [];
+              final hasFlagged = projects.any((p) => p.flagged);
+              return Column(children: [
+                if (hasFlagged) const AlertBanner(text: 'A project in your district is flagged. Tap "Schemes" to see details.'),
+                SectionCard(
+                  title: 'Active projects near me',
+                  child: projects.isEmpty
+                      ? Padding(padding: const EdgeInsets.all(16), child: Text('No projects found', style: t.bodyMedium))
+                      : Column(children: projects.map((p) => Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: t.divider))),
+                          child: Row(children: [
+                            Container(
+                              width: 42, height: 42,
+                              decoration: BoxDecoration(color: t.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
+                              child: Icon(Icons.construction, color: t.primary),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(p.name, style: t.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                              Text('${p.contractor}', style: t.bodySmall),
+                            ])),
+                            if (p.flagged) const StatusPill(label: 'FLAGGED', color: Color(0xFFD32F2F)),
+                          ]),
+                        )).toList()),
                 ),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(p.name, style: t.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Text('${p.id} • ${p.contractor}', style: t.bodySmall),
-                ])),
-                if (p.flagged) const StatusPill(label: 'FLAGGED', color: Color(0xFFD32F2F)),
-              ]),
-            )).toList()),
+              ]);
+            },
           ),
-          SectionCard(
-            title: 'Scheme status in $district',
-            child: Column(children: [
-              ...api.schemes.take(2).map((s) => _SchemeRow(name: s.name, allocated: s.allocated, returned: s.returned, color: schemeColor(s.status, context))),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () => context.push('/citizen/schemes'),
-                  icon: const Icon(Icons.arrow_forward),
-                  label: const Text('View all schemes'),
-                ),
-              ),
-            ]),
+          FutureBuilder<List<Scheme>>(
+            future: _schemesFut,
+            builder: (ctx, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const SectionCard(child: Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())));
+              }
+              final schemes = snap.data ?? [];
+              return SectionCard(
+                title: 'Scheme status in $district',
+                child: Column(children: [
+                  ...schemes.take(2).map((s) => _SchemeRow(name: s.name, allocated: s.allocated, returned: s.returned, color: schemeColor(s.status, context))),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () => context.push('/citizen/schemes'),
+                      icon: const Icon(Icons.arrow_forward),
+                      label: const Text('View all schemes'),
+                    ),
+                  ),
+                ]),
+              );
+            },
           ),
         ],
       ),

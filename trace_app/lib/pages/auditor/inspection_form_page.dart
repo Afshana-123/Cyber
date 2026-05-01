@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../flutter_flow/flutter_flow_theme.dart';
 import '../../models/models.dart';
-import '../../services/mock_api.dart';
+import '../../services/api_service.dart';
 import '../../widgets/common.dart';
 
 class InspectionFormPage extends StatefulWidget {
@@ -16,7 +16,8 @@ class InspectionFormPage extends StatefulWidget {
 }
 
 class _InspectionFormPageState extends State<InspectionFormPage> {
-  late Project project;
+  Project? _project;
+  bool _loadingProject = true;
   final List<XFile> _photos = [];
   final List<ChecklistItem> _checklist = [
     ChecklistItem('Road width ≥ 7.0 m'),
@@ -33,9 +34,17 @@ class _InspectionFormPageState extends State<InspectionFormPage> {
   @override
   void initState() {
     super.initState();
-    project = MockApi.I.projects.firstWhere((p) => p.id == widget.projectId,
-        orElse: () => MockApi.I.projects.first);
-    _getLocation();
+    _loadProject();
+  }
+
+  Future<void> _loadProject() async {
+    try {
+      final projects = await ApiService.I.getProjects();
+      final match = projects.where((p) => p.id == widget.projectId);
+      _project = match.isNotEmpty ? match.first : (projects.isNotEmpty ? projects.first : null);
+    } catch (_) {}
+    if (mounted) setState(() => _loadingProject = false);
+    if (_project != null) _getLocation();
   }
 
   Future<void> _getLocation() async {
@@ -45,17 +54,17 @@ class _InspectionFormPageState extends State<InspectionFormPage> {
       if (perm == LocationPermission.denied) await Geolocator.requestPermission();
       final p = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
           .timeout(const Duration(seconds: 8), onTimeout: () => Position(
-            longitude: project.lng + 0.0005, latitude: project.lat + 0.0005,
+            longitude: (_project?.lng ?? 78.5685) + 0.0005,
+            latitude: (_project?.lat ?? 25.4484) + 0.0005,
             timestamp: DateTime.now(), accuracy: 10, altitude: 0, altitudeAccuracy: 0,
             heading: 0, headingAccuracy: 0, speed: 0, speedAccuracy: 0));
-      final d = Geolocator.distanceBetween(p.latitude, p.longitude, project.lat, project.lng);
+      final d = Geolocator.distanceBetween(p.latitude, p.longitude, _project!.lat, _project!.lng);
       setState(() { _pos = p; _locationValid = d <= 500; });
     } catch (_) {}
     if (mounted) setState(() => _locating = false);
   }
 
   Future<void> _takePhoto() async {
-    // Auditor rule — camera only, never gallery
     final p = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 82);
     if (p != null) setState(() => _photos.add(p));
   }
@@ -67,15 +76,27 @@ class _InspectionFormPageState extends State<InspectionFormPage> {
         message: 'Inspection verdict: $_verdict');
     if (!proceed) return;
     setState(() => _submitting = true);
-    final failed = _checklist.where((c) => c.result == 'Fail').length;
-    final id = await MockApi.I.postInspection(Inspection(
-      projectId: project.id, verdict: _verdict, failedItems: failed,
-      createdAt: DateTime.now(),
-    ));
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    _snack('Inspection $id recorded on-chain');
-    context.go('/auditor');
+    try {
+      final checklistMap = <String, String>{};
+      for (final c in _checklist) {
+        checklistMap[c.label] = c.result.toLowerCase();
+      }
+      final result = await ApiService.I.postInspection(
+        projectId: _project!.id,
+        verdict: _verdict,
+        gpsLat: _pos!.latitude,
+        gpsLng: _pos!.longitude,
+        checklist: checklistMap,
+        photos: _photos.map((p) => p.path).toList(),
+      );
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      final id = result['inspection_id'] ?? '';
+      _snack('Inspection $id recorded on-chain');
+      context.go('/auditor');
+    } catch (e) {
+      if (mounted) { setState(() => _submitting = false); _snack('Error: $e'); }
+    }
   }
 
   void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
@@ -83,6 +104,13 @@ class _InspectionFormPageState extends State<InspectionFormPage> {
   @override
   Widget build(BuildContext context) {
     final t = FlutterFlowTheme.of(context);
+    if (_loadingProject) {
+      return Scaffold(appBar: AppBar(title: const Text('Inspection')), body: const Center(child: CircularProgressIndicator()));
+    }
+    if (_project == null) {
+      return Scaffold(appBar: AppBar(title: const Text('Inspection')), body: Center(child: Text('Project not found', style: t.headlineSmall)));
+    }
+    final project = _project!;
     return Scaffold(
       appBar: AppBar(title: const Text('Inspection')),
       body: ListView(
@@ -91,7 +119,7 @@ class _InspectionFormPageState extends State<InspectionFormPage> {
           SectionCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(project.name, style: t.headlineSmall),
             const SizedBox(height: 4),
-            Text('${project.id} • ${project.contractor}', style: t.bodySmall),
+            Text('${project.contractor}', style: t.bodySmall),
             const SizedBox(height: 4),
             Text('Verifying: ${project.milestone}', style: t.bodyMedium),
           ])),
