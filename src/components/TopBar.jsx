@@ -2,9 +2,12 @@
 import { Search, Bell, Hexagon } from 'lucide-react';
 import styles from './TopBar.module.css';
 
-export default function TopBar() {
+export default function TopBar({ collapsed = false }) {
   return (
-    <header className={styles.topbar}>
+    <header 
+      className={styles.topbar}
+      style={{ left: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)' }}
+    >
       <div className={styles.topbarLeft}>
         <div className={styles.topbarSearch}>
           <Search size={18} className={styles.topbarSearchIcon} />

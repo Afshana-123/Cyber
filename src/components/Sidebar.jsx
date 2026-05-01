@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {
   LayoutDashboard, FolderOpen, FileText, ArrowLeftRight,
   ShieldAlert, ClipboardList, Eye, Settings, HelpCircle,
-  Hexagon, ChevronDown, Shield
+  Hexagon, ChevronDown, Shield, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
@@ -23,25 +23,35 @@ const systemItems = [
   { label: 'Support', icon: HelpCircle, href: '#' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed = false, onToggle }) {
   const pathname = usePathname();
 
   return (
-    <aside className={styles.sidebar}>
-      {/* Logo */}
+    <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''}`}>
+      {/* Logo + Toggle */}
       <div className={styles.sidebarLogo}>
         <div className={styles.sidebarLogoIcon}>
           <Hexagon size={28} strokeWidth={1.5} />
         </div>
-        <div className={styles.sidebarLogoText}>
-          <span className={styles.sidebarBrand}>ChainTrust</span>
-          <span className={styles.sidebarTagline}>Institutional Ledger</span>
-        </div>
+        {!collapsed && (
+          <div className={styles.sidebarLogoText}>
+            <span className={styles.sidebarBrand}>ChainTrust</span>
+            <span className={styles.sidebarTagline}>Institutional Ledger</span>
+          </div>
+        )}
+        <button 
+          className={styles.toggleBtn}
+          onClick={onToggle}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        </button>
       </div>
 
       {/* Main Nav */}
       <nav className={styles.sidebarNav}>
-        <div className={styles.sidebarSectionLabel}>Overview</div>
+        {!collapsed && <div className={styles.sidebarSectionLabel}>Overview</div>}
         {navItems.map((item) => {
           const isActive = pathname === item.href || 
             (item.href === '/dashboard' && pathname === '/');
@@ -50,13 +60,19 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               className={isActive ? styles.sidebarItemActive : styles.sidebarItem}
+              title={collapsed ? item.label : undefined}
             >
               <span className={styles.sidebarItemIcon}>
                 <item.icon size={20} strokeWidth={1.5} />
               </span>
-              <span className={styles.sidebarItemLabel}>{item.label}</span>
-              {item.badge && (
+              {!collapsed && (
+                <span className={styles.sidebarItemLabel}>{item.label}</span>
+              )}
+              {item.badge && !collapsed && (
                 <span className={styles.sidebarBadge}>{item.badge}</span>
+              )}
+              {item.badge && collapsed && (
+                <span className={styles.sidebarBadgeDot}></span>
               )}
             </Link>
           );
@@ -65,17 +81,20 @@ export default function Sidebar() {
 
       {/* System Nav */}
       <nav className={`${styles.sidebarNav} ${styles.sidebarSystem}`}>
-        <div className={styles.sidebarSectionLabel}>System</div>
+        {!collapsed && <div className={styles.sidebarSectionLabel}>System</div>}
         {systemItems.map((item) => (
           <Link
             key={item.label}
             href={item.href}
             className={styles.sidebarItem}
+            title={collapsed ? item.label : undefined}
           >
             <span className={styles.sidebarItemIcon}>
               <item.icon size={20} strokeWidth={1.5} />
             </span>
-            <span className={styles.sidebarItemLabel}>{item.label}</span>
+            {!collapsed && (
+              <span className={styles.sidebarItemLabel}>{item.label}</span>
+            )}
           </Link>
         ))}
       </nav>
@@ -83,12 +102,14 @@ export default function Sidebar() {
       {/* User Profile */}
       <div className={styles.sidebarUser}>
         <div className={styles.sidebarAvatar}>AS</div>
-        <div className={styles.sidebarUserInfo}>
-          <span className={styles.sidebarUserName}>Arjun Singh</span>
-          <span className={styles.sidebarUserRole}>
-            Admin <ChevronDown size={14} />
-          </span>
-        </div>
+        {!collapsed && (
+          <div className={styles.sidebarUserInfo}>
+            <span className={styles.sidebarUserName}>Arjun Singh</span>
+            <span className={styles.sidebarUserRole}>
+              Admin <ChevronDown size={14} />
+            </span>
+          </div>
+        )}
       </div>
     </aside>
   );

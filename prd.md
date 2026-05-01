@@ -322,3 +322,155 @@ Current systems are:
 ## 16. Vision Statement
 
 To create a transparent, tamper-proof system where public funds can be tracked, verified, and trusted by everyone—from governments to citizens.
+
+
+# Backend Technical Specification
+
+This document translates the PRD into implementable backend logic and APIs.
+
+## 17. API Design
+
+### Projects
+
+POST /api/projects
+- Create a new project
+
+Request:
+{
+  "name": "Road Project A",
+  "budget": 10000000
+}
+
+Response:
+{
+  "id": "proj_1",
+  "name": "Road Project A",
+  "budget": 10000000,
+  "status": "active"
+}
+
+---
+
+GET /api/projects
+- Get all projects
+
+---
+
+### Bids
+
+POST /api/bids
+- Submit a bid
+
+Request:
+{
+  "projectId": "proj_1",
+  "contractor": "ABC Constructions",
+  "amount": 9500000
+}
+
+Response:
+{
+  "id": "bid_1",
+  "hash": "0xabc123...",
+  "status": "submitted"
+}
+
+---
+
+GET /api/bids/:projectId
+
+---
+
+### Transactions
+
+POST /api/transactions
+- Create fund transfer
+
+Request:
+{
+  "from": "Government",
+  "to": "Contractor",
+  "amount": 5000000,
+  "projectId": "proj_1"
+}
+
+---
+
+GET /api/transactions
+
+---
+
+### Fraud Detection
+
+POST /api/fraud/analyze/:projectId
+
+Response:
+{
+  "riskScore": 78,
+  "flags": [
+    "Similar bid values detected",
+    "Winning bid above benchmark"
+  ]
+}
+
+## 18. System Flow (Backend)
+
+1. Admin creates project
+→ stored in memory
+
+2. Contractors submit bids
+→ hash generated
+→ stored in blockchain (or simulated)
+
+3. Fraud detection runs:
+→ on each new bid
+→ on winner selection
+
+4. Winner selected
+→ multi-sig simulated
+
+5. Transactions created
+→ fund flow tracked
+
+6. Fraud engine evaluates transactions
+→ flags suspicious ones
+
+7. Auditor accesses flagged data
+
+## 19. Fraud Detection Logic
+
+### Rule 1: Collusion Detection
+IF multiple bids differ by < 2%
+→ flag: "Possible collusion"
+
+### Rule 2: Overpricing
+IF winning bid > 30% above benchmark
+→ flag: "Overpricing detected"
+
+### Rule 3: Repeated Winner
+IF same contractor wins > 3 projects
+→ flag: "Suspicious pattern"
+
+### Risk Score:
+Each rule adds:
+- Collusion: +30
+- Overpricing: +40
+- Repeat: +20
+
+Max: 100
+
+## 20. Data Relationships
+
+Project
+→ has many Bids
+→ has many Transactions
+→ has many FraudAlerts
+
+Bid
+→ belongs to Project
+
+Transaction
+→ belongs to Project
+
+FraudAlert
+→ belongs to Project

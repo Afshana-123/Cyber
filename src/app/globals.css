@@ -283,6 +283,11 @@ input, select, textarea {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  transition: margin-left 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-layout-collapsed .main-area {
+  margin-left: var(--sidebar-collapsed);
 }
 
 .page-content {

@@ -1,3 +1,7 @@
+/* ═══════════════════════════════════════════
+   Sidebar — Premium with Collapse Support
+   ═══════════════════════════════════════════ */
+
 .sidebar {
   position: fixed;
   top: 0;
@@ -10,9 +14,15 @@
   z-index: 100;
   overflow-y: auto;
   overflow-x: hidden;
+  transition: width 350ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Ambient glow orb */
+/* Collapsed state */
+.sidebarCollapsed {
+  width: var(--sidebar-collapsed);
+}
+
+/* ─── Ambient Glow Orbs ─── */
 .sidebar::before {
   content: '';
   position: absolute;
@@ -42,14 +52,21 @@
   50%      { transform: translate(15px, 20px); }
 }
 
+/* ─── Logo ─── */
 .sidebarLogo {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 24px 24px 20px;
+  padding: 24px 24px 16px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   position: relative;
-  transition: padding 200ms ease;
+  transition: padding 350ms cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 72px;
+}
+
+.sidebarCollapsed .sidebarLogo {
+  padding: 24px 0 16px;
+  justify-content: center;
 }
 
 .sidebarLogoIcon {
@@ -67,6 +84,9 @@
 .sidebarLogoText {
   display: flex;
   flex-direction: column;
+  opacity: 1;
+  transition: opacity 200ms ease;
+  white-space: nowrap;
 }
 
 .sidebarBrand {
@@ -84,10 +104,50 @@
   letter-spacing: 0.02em;
 }
 
+/* ─── Toggle Button (inside logo row) ─── */
+.toggleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px;
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.sidebarCollapsed .toggleBtn {
+  margin: 4px auto 0;
+}
+
+.toggleBtn:hover {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.9);
+  border-color: rgba(255,255,255,0.2);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.toggleBtn:active {
+  transform: scale(0.92);
+}
+
+/* ─── Navigation ─── */
 .sidebarNav {
-  padding: 16px 12px;
+  padding: 12px;
   flex: 1;
   position: relative;
+}
+
+.sidebarCollapsed .sidebarNav {
+  padding: 12px 8px;
 }
 
 .sidebarSystem {
@@ -103,9 +163,12 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: rgba(255,255,255,0.3);
-  padding: 8px 12px 8px;
+  padding: 8px 12px 6px;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
+/* ─── Nav Items ─── */
 .sidebarItem {
   display: flex;
   align-items: center;
@@ -121,32 +184,52 @@
   margin-bottom: 2px;
   text-decoration: none;
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebarCollapsed .sidebarItem {
+  justify-content: center;
+  padding: 10px;
 }
 
 .sidebarItem:hover {
   color: rgba(255,255,255,0.95);
   background: rgba(255,255,255,0.08);
-  transform: translateX(4px);
+  transform: translateX(3px);
 }
 
+.sidebarCollapsed .sidebarItem:hover {
+  transform: translateX(0) scale(1.05);
+}
+
+/* Active state */
 .sidebarItemActive {
   composes: sidebarItem;
   color: white;
-  background: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 .sidebarItemActive::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 6px;
-  bottom: 6px;
+  top: 8px;
+  bottom: 8px;
   width: 3px;
-  background: linear-gradient(180deg, #60a5fa, #818cf8);
-  border-radius: 0 3px 3px 0;
-  box-shadow: 0 0 8px rgba(96, 165, 250, 0.4);
+  background: linear-gradient(180deg, #a78bfa, #818cf8);
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 10px rgba(167, 139, 250, 0.35);
+}
+
+.sidebarCollapsed .sidebarItemActive::before {
+  left: 0;
+  top: 50%;
+  bottom: auto;
+  width: 3px;
+  height: 18px;
+  transform: translateY(-50%);
 }
 
 .sidebarItemIcon {
@@ -155,6 +238,7 @@
   align-items: center;
   transition: transform 200ms ease;
 }
+
 .sidebarItem:hover .sidebarItemIcon {
   transform: scale(1.1);
 }
@@ -163,8 +247,10 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: opacity 200ms ease;
 }
 
+/* ─── Badge ─── */
 .sidebarBadge {
   margin-left: auto;
   background: var(--color-red-600);
@@ -180,11 +266,24 @@
   animation: badgePulse 3s ease-in-out infinite;
 }
 
+.sidebarBadgeDot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background: var(--color-red-500);
+  border-radius: 50%;
+  border: 2px solid #0f1a4a;
+  animation: badgePulse 3s ease-in-out infinite;
+}
+
 @keyframes badgePulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
   50%      { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0); }
 }
 
+/* ─── User Profile ─── */
 .sidebarUser {
   display: flex;
   align-items: center;
@@ -194,6 +293,11 @@
   cursor: pointer;
   transition: all 200ms ease;
   position: relative;
+}
+
+.sidebarCollapsed .sidebarUser {
+  padding: 16px 0;
+  justify-content: center;
 }
 
 .sidebarUser:hover {
@@ -224,6 +328,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  white-space: nowrap;
 }
 
 .sidebarUserName {
