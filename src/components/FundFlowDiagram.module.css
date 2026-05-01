@@ -1,12 +1,23 @@
 .fundFlow {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
   border: 1px solid rgba(203, 213, 225, 0.4);
-  animation: cardEnter 0.5s ease-out both;
-  animation-delay: 100ms;
+  animation: flowEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) 100ms both;
   overflow: hidden;
+  transition: all 350ms cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+@keyframes flowEnter {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.fundFlow:hover {
+  box-shadow: 0 8px 30px rgba(10, 15, 46, 0.1), 0 2px 8px rgba(10, 15, 46, 0.04);
+  transform: translateY(-2px);
+}
+
 .header {
   display: flex;
   align-items: center;
@@ -14,14 +25,44 @@
   padding: 20px 24px;
   border-bottom: 1px solid var(--color-slate-100);
 }
-.controls { display: flex; gap: 4px; }
+
+.controls {
+  display: flex;
+  gap: 4px;
+}
+
 .activeFilter {
   background: var(--color-primary-50) !important;
   border-color: var(--color-primary-300) !important;
   color: var(--color-primary-700) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.08);
 }
-.canvas { padding: 16px; overflow-x: auto; }
-.svg { width: 100%; min-width: 600px; height: auto; }
-.node { cursor: pointer; transition: opacity 200ms ease; }
-.node:hover { opacity: 0.85; }
-.animated { animation: flowDash 1s linear infinite; }
+
+.canvas {
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.svg {
+  width: 100%;
+  min-width: 600px;
+  height: auto;
+}
+
+.node {
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.node:hover {
+  opacity: 0.85;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+@keyframes flowDash {
+  to { stroke-dashoffset: -16; }
+}
+
+.animated {
+  animation: flowDash 1s linear infinite;
+}

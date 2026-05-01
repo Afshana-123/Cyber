@@ -1,19 +1,54 @@
 'use client';
-import { IndianRupee, FolderOpen, AlertTriangle, Activity } from 'lucide-react';
+import { IndianRupee, FolderOpen, AlertTriangle, Activity, Calendar, Zap, TrendingUp } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import RiskGauge from '@/components/RiskGauge';
 import FundFlowDiagram from '@/components/FundFlowDiagram';
 import FraudAlertPanel from '@/components/FraudAlertPanel';
 import LiveTransactions from '@/components/LiveTransactions';
 import { metrics, fraudAlerts, transactions } from '@/data/mockData';
+import styles from './page.module.css';
 
 export default function DashboardPage() {
+  const now = new Date();
+  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
+  const dateStr = now.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
   return (
     <div className="page-content">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">System Overview</h1>
-          <p className="page-subtitle">Real-time ledger analytics and operational health.</p>
+      {/* Premium Welcome Header */}
+      <div className={styles.welcomeHeader}>
+        <div className={styles.welcomeLeft}>
+          <div className={styles.welcomeGreeting}>
+            <h1 className={styles.welcomeTitle}>{greeting}, Arjun</h1>
+            <div className={styles.welcomeDate}>
+              <Calendar size={14} />
+              <span>{dateStr}</span>
+            </div>
+          </div>
+          <p className={styles.welcomeSubtitle}>
+            Your ledger is healthy — 3 new transactions require review.
+          </p>
+        </div>
+        <div className={styles.welcomeRight}>
+          <div className={styles.quickStat}>
+            <div className={styles.quickStatIcon}>
+              <Zap size={16} />
+            </div>
+            <div>
+              <span className={styles.quickStatValue}>12</span>
+              <span className={styles.quickStatLabel}>Pending</span>
+            </div>
+          </div>
+          <div className={styles.quickStatDivider}></div>
+          <div className={styles.quickStat}>
+            <div className={`${styles.quickStatIcon} ${styles.quickStatIconGreen}`}>
+              <TrendingUp size={16} />
+            </div>
+            <div>
+              <span className={styles.quickStatValue}>98.2%</span>
+              <span className={styles.quickStatLabel}>Uptime</span>
+            </div>
+          </div>
         </div>
       </div>
 
