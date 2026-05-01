@@ -1,8 +1,31 @@
 'use client';
-import { Eye, Search, ShieldCheck, AlertTriangle, IndianRupee, FolderOpen, Activity, MapPin, ExternalLink, Hexagon } from 'lucide-react';
-import { projects, transactions, formatCurrency } from '@/data/mockData';
+import { Eye, Search, ShieldCheck, AlertTriangle, IndianRupee, FolderOpen, Activity, MapPin, Hexagon, Loader2, Users } from 'lucide-react';
+import { useSupabase, formatTimestamp } from '@/lib/hooks';
 
 export default function PublicPage() {
+  const { data: stats, loading: statsLoading } = useSupabase('/api/dashboard');
+  const { data: projects, loading: projLoading } = useSupabase('/api/projects');
+  const { data: transactions, loading: txnLoading } = useSupabase('/api/transactions');
+
+  const isLoading = statsLoading || projLoading || txnLoading;
+
+  if (isLoading) {
+    return (
+      <div className="page-content" style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
+        <Loader2 size={32} className="spin" style={{ color: 'var(--color-primary-500)' }} />
+      </div>
+    );
+  }
+
+  const projectList = projects || [];
+  const txnList = transactions || [];
+
+  const getRiskColor = (score) => {
+    if (score <= 30) return 'var(--color-emerald-500)';
+    if (score <= 60) return 'var(--color-amber-500)';
+    return 'var(--color-red-600)';
+  };
+
   return (
     <div className="page-content">
       {/* Public Header */}
@@ -27,23 +50,23 @@ export default function PublicPage() {
         <div className="public-hero-stats">
           <div className="public-stat">
             <IndianRupee size={20} />
-            <span className="public-stat-val">₹28,470 Cr</span>
-            <span className="public-stat-label">Tracked</span>
+            <span className="public-stat-val">₹{parseFloat(stats?.totalFundsCr || 0).toFixed(2)} Cr</span>
+            <span className="public-stat-label">Allocated</span>
           </div>
           <div className="public-stat">
             <FolderOpen size={20} />
-            <span className="public-stat-val">142</span>
+            <span className="public-stat-val">{stats?.totalProjects ?? 0}</span>
             <span className="public-stat-label">Projects</span>
           </div>
           <div className="public-stat">
             <ShieldCheck size={20} />
-            <span className="public-stat-val">98.2%</span>
-            <span className="public-stat-label">Verified</span>
+            <span className="public-stat-val">{txnList.length}</span>
+            <span className="public-stat-label">Transactions</span>
           </div>
           <div className="public-stat">
             <Activity size={20} />
             <span className="public-stat-val">Live</span>
-            <span className="public-stat-label">Mainnet</span>
+            <span className="public-stat-label">Supabase</span>
           </div>
         </div>
       </div>
@@ -51,83 +74,78 @@ export default function PublicPage() {
       {/* Public Project Explorer */}
       <div className="section-gap">
         <div className="section-header">
-          <h2 className="heading-2">Featured Projects</h2>
-          <button className="btn btn-sm btn-secondary">View All Projects</button>
+          <h2 className="heading-2">All Projects</h2>
+          <span className="badge badge-verified"><span className="badge-dot"></span>Live Data</span>
         </div>
         <div className="grid-3">
-          {projects.slice(0, 3).map((project, i) => (
-            <div key={project.id} className="public-project-card card" style={{ animationDelay: `${i * 100}ms` }}>
-              <div className="public-project-top">
-                <div className="public-project-category">{project.category}</div>
-                <h3 className="public-project-name">{project.name}</h3>
-                <span className="public-project-loc"><MapPin size={13} /> {project.state}</span>
-              </div>
-              <div className="public-project-body">
-                <div className="public-project-progress">
-                  <div className="public-progress-track">
-                    <div
-                      className="public-progress-fill"
-                      style={{
-                        width: `${project.progress}%`,
-                        background: project.progress > 75 ? 'var(--color-emerald-500)' :
-                                    project.progress > 40 ? 'var(--color-primary-500)' : 'var(--color-amber-500)'
-                      }}
-                    ></div>
-                  </div>
-                  <span className="public-progress-text">{project.progress}% Complete</span>
+          {projectList.map((project, i) => {
+            const contractValue = Number(project.contract_value_cr || 0);
+            return (
+              <div key={project.id} className="public-project-card card" style={{ animationDelay: `${i * 100}ms` }}>
+                <div className="public-project-top">
+                  <div className="public-project-category">{project.status}</div>
+                  <h3 className="public-project-name">{project.name}</h3>
+                  <span className="public-project-loc"><MapPin size={13} /> {project.districts?.name || 'India'}, {project.districts?.state || ''}</span>
                 </div>
-                <div className="public-project-budget">
-                  <div className="public-budget-item">
-                    <span className="public-budget-label">Budget</span>
-                    <span className="public-budget-val">₹{(project.budget / 10000000000).toFixed(0)} Cr</span>
+                <div className="public-project-body">
+                  <div className="public-project-budget">
+                    <div className="public-budget-item">
+                      <span className="public-budget-label">Contract Value</span>
+                      <span className="public-budget-val">₹{contractValue.toFixed(2)} Cr</span>
+                    </div>
+                    <div className="public-budget-item">
+                      <span className="public-budget-label">Contractor</span>
+                      <span style={{ fontSize: '13px', fontWeight: 500 }}>{project.contractor_name}</span>
+                    </div>
                   </div>
-                  <div className="public-budget-item">
-                    <span className="public-budget-label">Spent</span>
-                    <span className="public-budget-val">₹{(project.spent / 10000000000).toFixed(0)} Cr</span>
+                  <div className="public-project-trust">
+                    {project.risk_score > 50 ? (
+                      <AlertTriangle size={14} style={{ color: 'var(--color-red-600)' }} />
+                    ) : (
+                      <ShieldCheck size={14} style={{ color: 'var(--color-emerald-600)' }} />
+                    )}
+                    <span>Risk Score: <strong style={{ color: getRiskColor(project.risk_score) }}>{project.risk_score}/100</strong></span>
                   </div>
-                </div>
-                <div className="public-project-trust">
-                  <ShieldCheck size={14} style={{ color: 'var(--color-emerald-600)' }} />
-                  <span>Transparency Score: <strong>{project.transparencyScore}/100</strong></span>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
       {/* Public Transaction Ledger */}
       <div className="section-gap">
         <div className="section-header">
-          <h2 className="heading-2">Recent Verified Transactions</h2>
+          <h2 className="heading-2">Recent Transactions</h2>
           <span className="badge badge-verified"><span className="badge-dot"></span>Blockchain Verified</span>
         </div>
         <div className="card" style={{ overflow: 'hidden' }}>
           <table className="data-table">
             <thead>
               <tr>
-                <th>TXN ID</th>
-                <th>Project</th>
+                <th>Event</th>
                 <th>Amount</th>
-                <th>From → To</th>
-                <th>Status</th>
-                <th>Block</th>
+                <th>Location</th>
+                <th>District</th>
+                <th>TX Hash</th>
+                <th>Time</th>
               </tr>
             </thead>
             <tbody>
-              {transactions.filter(t => t.status === 'verified').slice(0, 5).map((txn, i) => (
+              {txnList.length === 0 ? (
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-slate-400)' }}>No transactions yet</td></tr>
+              ) : txnList.slice(0, 8).map((txn, i) => (
                 <tr key={txn.id} style={{ animation: `cardEnter 0.3s ease-out ${i * 50}ms both` }}>
-                  <td className="mono-cell">{txn.id}</td>
-                  <td style={{ fontWeight: 500 }}>{txn.project}</td>
-                  <td className="amount-cell">{formatCurrency(txn.amount)}</td>
-                  <td style={{ fontSize: '13px' }}>
-                    {txn.from} <span style={{ color: 'var(--color-primary-500)', fontWeight: 700 }}>→</span> {txn.to}
+                  <td>
+                    <span className={`badge ${txn.event_type === 'mint' ? 'badge-info' : txn.event_type === 'allocate' ? 'badge-verified' : 'badge-pending'}`}>
+                      {txn.event_type}
+                    </span>
                   </td>
-                  <td><span className="badge badge-verified"><ShieldCheck size={12} />Verified</span></td>
-                  <td className="mono-cell" style={{ fontSize: '12px' }}>
-                    #{txn.blockNumber}
-                    <ExternalLink size={12} style={{ marginLeft: '4px', cursor: 'pointer', color: 'var(--color-primary-500)' }} />
-                  </td>
+                  <td className="amount-cell">₹{parseFloat(txn.amount_cr || 0).toFixed(2)} Cr</td>
+                  <td style={{ fontSize: '13px' }}>{txn.location || '—'}</td>
+                  <td style={{ fontSize: '13px', fontWeight: 500 }}>{txn.districts?.name || '—'}</td>
+                  <td><span className="mono-cell">{txn.tx_hash ? txn.tx_hash.slice(0, 16) + '...' : '—'}</span></td>
+                  <td style={{ fontSize: '12px', color: 'var(--color-slate-500)' }}>{formatTimestamp(txn.timestamp)}</td>
                 </tr>
               ))}
             </tbody>

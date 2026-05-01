@@ -1,14 +1,18 @@
 'use client';
-import { IndianRupee, FolderOpen, AlertTriangle, Activity, Calendar, Zap, TrendingUp } from 'lucide-react';
+import { IndianRupee, FolderOpen, AlertTriangle, Activity, Calendar, Zap, TrendingUp, Loader2, Shield, Users } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import RiskGauge from '@/components/RiskGauge';
 import FundFlowDiagram from '@/components/FundFlowDiagram';
 import FraudAlertPanel from '@/components/FraudAlertPanel';
 import LiveTransactions from '@/components/LiveTransactions';
-import { metrics, fraudAlerts, transactions } from '@/data/mockData';
+import { useSupabase } from '@/lib/hooks';
 import styles from './page.module.css';
 
 export default function DashboardPage() {
+  const { data: stats, loading: statsLoading } = useSupabase('/api/dashboard');
+  const { data: alerts, loading: alertsLoading } = useSupabase('/api/fraud');
+  const { data: transactions, loading: txnLoading } = useSupabase('/api/transactions');
+
   const now = new Date();
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
   const dateStr = now.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -26,7 +30,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <p className={styles.welcomeSubtitle}>
-            Your ledger is healthy — 3 new transactions require review.
+            {stats ? `${stats.openAlerts} open alerts · ${stats.flaggedProjects} flagged projects · ₹${parseFloat(stats.missingCr).toFixed(2)} Cr missing funds` : 'Loading dashboard...'}
           </p>
         </div>
         <div className={styles.welcomeRight}>
@@ -35,8 +39,8 @@ export default function DashboardPage() {
               <Zap size={16} />
             </div>
             <div>
-              <span className={styles.quickStatValue}>12</span>
-              <span className={styles.quickStatLabel}>Pending</span>
+              <span className={styles.quickStatValue}>{stats?.openAlerts ?? '—'}</span>
+              <span className={styles.quickStatLabel}>Alerts</span>
             </div>
           </div>
           <div className={styles.quickStatDivider}></div>
@@ -45,8 +49,8 @@ export default function DashboardPage() {
               <TrendingUp size={16} />
             </div>
             <div>
-              <span className={styles.quickStatValue}>98.2%</span>
-              <span className={styles.quickStatLabel}>Uptime</span>
+              <span className={styles.quickStatValue}>{stats?.flaggedDistricts ?? '—'}</span>
+              <span className={styles.quickStatLabel}>Flagged</span>
             </div>
           </div>
         </div>
@@ -56,34 +60,34 @@ export default function DashboardPage() {
       <div className="grid-4 section-gap">
         <MetricCard
           icon={IndianRupee}
-          label="Total Funds Tracked"
-          value="₹28,470 Cr"
-          change={metrics.totalFundsChange}
+          label="Total Funds Allocated"
+          value={stats ? `₹${parseFloat(stats.totalFundsCr).toFixed(2)} Cr` : '—'}
+          change={0}
           variant="neutral"
           delay={0}
         />
         <MetricCard
           icon={FolderOpen}
           label="Active Projects"
-          value="142"
-          change={metrics.activeProjectsChange}
+          value={stats?.totalProjects?.toString() ?? '—'}
+          change={0}
           variant="success"
           delay={100}
         />
         <MetricCard
           icon={AlertTriangle}
-          label="Flagged Transactions"
-          value="23"
-          change={metrics.flaggedTransactionsChange}
+          label="Flagged Projects"
+          value={stats?.flaggedProjects?.toString() ?? '—'}
+          change={0}
           variant="danger"
           delay={200}
         />
         <MetricCard
           icon={Activity}
-          label="System Health Score"
-          value="87/100"
-          change={metrics.systemHealthChange}
-          variant="success"
+          label="Average Risk Score"
+          value={stats ? `${stats.avgRisk}/100` : '—'}
+          change={0}
+          variant={stats?.avgRisk > 50 ? 'danger' : 'success'}
           delay={300}
         />
       </div>
@@ -91,13 +95,13 @@ export default function DashboardPage() {
       {/* Fund Flow + Risk Gauge */}
       <div className="split-60-40 section-gap">
         <FundFlowDiagram />
-        <RiskGauge score={67} />
+        <RiskGauge score={stats?.avgRisk ?? 0} />
       </div>
 
       {/* Fraud Alerts + Live Transactions */}
       <div className="split-40-60 section-gap">
-        <FraudAlertPanel alerts={fraudAlerts} />
-        <LiveTransactions transactions={transactions} />
+        <FraudAlertPanel alerts={alerts || []} />
+        <LiveTransactions transactions={transactions || []} />
       </div>
     </div>
   );

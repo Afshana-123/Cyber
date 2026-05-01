@@ -1,17 +1,21 @@
 'use client';
-import { ShieldCheck, AlertTriangle, Clock, ExternalLink } from 'lucide-react';
-import { formatCurrency } from '@/data/mockData';
+import { ShieldCheck, AlertTriangle, Clock, ExternalLink, ArrowUpRight, Coins, ArrowDownLeft } from 'lucide-react';
+import { formatTimestamp } from '@/lib/hooks';
 import styles from './LiveTransactions.module.css';
 
 export default function LiveTransactions({ transactions }) {
-  const getStatusBadge = (status) => {
+  const getEventBadge = (eventType) => {
     const map = {
-      verified: { className: 'badge-verified', icon: ShieldCheck, text: 'Verified' },
-      flagged: { className: 'badge-flagged', icon: AlertTriangle, text: 'Flagged' },
-      pending: { className: 'badge-pending', icon: Clock, text: 'Pending' },
+      mint: { className: 'badge-info', icon: Coins, text: 'Mint' },
+      allocate: { className: 'badge-verified', icon: ArrowUpRight, text: 'Allocate' },
+      disburse: { className: 'badge-pending', icon: ArrowDownLeft, text: 'Disburse' },
+      withdraw: { className: 'badge-flagged', icon: AlertTriangle, text: 'Withdraw' },
+      return: { className: 'badge-verified', icon: ShieldCheck, text: 'Return' },
     };
-    return map[status] || map.pending;
+    return map[eventType] || { className: 'badge-info', icon: Clock, text: eventType || 'Unknown' };
   };
+
+  const txnList = transactions || [];
 
   return (
     <div className={styles.liveTxn}>
@@ -25,37 +29,33 @@ export default function LiveTransactions({ transactions }) {
         <table className="data-table">
           <thead>
             <tr>
-              <th>TXN ID</th>
-              <th>Project</th>
+              <th>Event</th>
               <th>Amount</th>
-              <th>Flow</th>
-              <th>Status</th>
+              <th>Location</th>
+              <th>District</th>
               <th>Time</th>
             </tr>
           </thead>
           <tbody>
-            {transactions.slice(0, 6).map((txn, i) => {
-              const status = getStatusBadge(txn.status);
-              const StatusIcon = status.icon;
+            {txnList.length === 0 ? (
+              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '30px', color: 'var(--color-slate-400)' }}>No transactions yet</td></tr>
+            ) : txnList.slice(0, 6).map((txn, i) => {
+              const badge = getEventBadge(txn.event_type);
+              const BadgeIcon = badge.icon;
               return (
                 <tr key={txn.id} style={{ animationDelay: `${i * 50}ms` }}>
-                  <td className="mono-cell">{txn.id}</td>
-                  <td>{txn.project}</td>
-                  <td className="amount-cell">{formatCurrency(txn.amount)}</td>
                   <td>
-                    <span className={styles.flowCell}>
-                      <span className={styles.flowFrom}>{txn.from}</span>
-                      <span className={styles.flowArrow}>→</span>
-                      <span className={styles.flowTo}>{txn.to}</span>
+                    <span className={`badge ${badge.className}`}>
+                      <BadgeIcon size={12} />
+                      {badge.text}
                     </span>
                   </td>
-                  <td>
-                    <span className={`badge ${status.className}`}>
-                      <StatusIcon size={12} />
-                      {status.text}
-                    </span>
+                  <td className="amount-cell">₹{txn.amount_cr} Cr</td>
+                  <td style={{ fontSize: '13px' }}>{txn.location || '—'}</td>
+                  <td style={{ fontSize: '13px', fontWeight: 500 }}>{txn.districts?.name || '—'}</td>
+                  <td style={{ color: 'var(--color-slate-500)', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                    {formatTimestamp(txn.timestamp)}
                   </td>
-                  <td style={{ color: 'var(--color-slate-500)', fontSize: '13px', whiteSpace: 'nowrap' }}>{txn.time}</td>
                 </tr>
               );
             })}
