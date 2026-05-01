@@ -1,31 +1,38 @@
 'use client';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import styles from './MetricCard.module.css';
 
 export default function MetricCard({ icon: Icon, label, value, change, variant = 'neutral', delay = 0 }) {
   const isPositive = change >= 0;
-  const variantColors = {
-    neutral: { border: 'var(--color-slate-200)', bg: 'transparent' },
-    success: { border: 'var(--color-emerald-500)', bg: 'var(--color-emerald-50)' },
-    warning: { border: 'var(--color-amber-500)', bg: 'var(--color-amber-50)' },
-    danger: { border: 'var(--color-red-600)', bg: 'var(--color-red-50)' },
-  };
-  const colors = variantColors[variant];
+
+  const borderClass = variant === 'success' ? styles.borderSuccess
+    : variant === 'warning' ? styles.borderWarning
+    : variant === 'danger' ? styles.borderDanger : '';
+
+  const bgClass = variant === 'success' ? styles.bgSuccess
+    : variant === 'warning' ? styles.bgWarning
+    : variant === 'danger' ? styles.bgDanger : '';
+
+  const iconClass = variant === 'success' ? styles.iconSuccess
+    : variant === 'warning' ? styles.iconWarning
+    : variant === 'danger' ? styles.iconDanger : styles.iconNeutral;
 
   return (
-    <div className={`metric-card metric-${variant}`} style={{ animationDelay: `${delay}ms` }}>
-      <div className="metric-top">
-        <div className="metric-icon-wrap">
+    <div className={`${styles.metricCard} ${borderClass}`} style={{ animationDelay: `${delay}ms` }}>
+      {bgClass && <div className={`${styles.bgOverlay} ${bgClass}`}></div>}
+      <div className={styles.metricTop}>
+        <div className={`${styles.metricIconWrap} ${iconClass}`}>
           <Icon size={20} strokeWidth={1.5} />
         </div>
-        <span className="metric-label">{label}</span>
+        <span className={styles.metricLabel}>{label}</span>
       </div>
-      <div className="metric-value">{value}</div>
-      <div className={`metric-change ${isPositive ? 'positive' : 'negative'}`}>
+      <div className={styles.metricValue}>{value}</div>
+      <div className={`${styles.metricChange} ${isPositive ? styles.positive : styles.negative}`}>
         {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
         <span>{isPositive ? '+' : ''}{change}%</span>
-        <span className="metric-change-label">vs last month</span>
+        <span className={styles.metricChangeLabel}>vs last month</span>
       </div>
-      <div className="metric-sparkline">
+      <div className={styles.metricSparkline}>
         <svg viewBox="0 0 120 24" preserveAspectRatio="none">
           <path
             d={variant === 'danger'
@@ -38,96 +45,6 @@ export default function MetricCard({ icon: Icon, label, value, change, variant =
           />
         </svg>
       </div>
-
-      <style jsx>{`
-        .metric-card {
-          background: var(--bg-card);
-          border-radius: var(--radius-lg);
-          padding: 20px 24px;
-          box-shadow: var(--shadow-1);
-          border: 1px solid rgba(203, 213, 225, 0.4);
-          border-left: 4px solid ${colors.border};
-          transition: all 200ms ease-out;
-          animation: cardEnter 0.4s ease-out both;
-          position: relative;
-          overflow: hidden;
-        }
-        .metric-card::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: ${colors.bg};
-          opacity: 0.3;
-          pointer-events: none;
-        }
-        .metric-card:hover {
-          box-shadow: var(--shadow-2);
-          transform: translateY(-2px);
-        }
-        .metric-danger {
-          animation: cardEnter 0.4s ease-out both, fraudPulse 3s ease-in-out infinite;
-        }
-        .metric-top {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 12px;
-          position: relative;
-        }
-        .metric-icon-wrap {
-          width: 36px;
-          height: 36px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 10px;
-          background: ${variant === 'danger' ? 'var(--color-red-100)' : variant === 'success' ? 'var(--color-emerald-100)' : 'var(--color-primary-100)'};
-          color: ${variant === 'danger' ? 'var(--color-red-600)' : variant === 'success' ? 'var(--color-emerald-600)' : 'var(--color-primary-700)'};
-        }
-        .metric-label {
-          font-family: var(--font-label);
-          font-size: 12px;
-          font-weight: 600;
-          color: var(--color-slate-500);
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          position: relative;
-        }
-        .metric-value {
-          font-family: var(--font-display);
-          font-size: 28px;
-          font-weight: 700;
-          color: var(--color-slate-900);
-          margin-bottom: 8px;
-          position: relative;
-          letter-spacing: -0.02em;
-        }
-        .metric-change {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-family: var(--font-label);
-          font-size: 12px;
-          font-weight: 600;
-          position: relative;
-        }
-        .metric-change.positive { color: var(--color-emerald-600); }
-        .metric-change.negative { color: var(--color-red-600); }
-        .metric-change-label {
-          color: var(--color-slate-400);
-          font-weight: 400;
-          margin-left: 4px;
-        }
-        .metric-sparkline {
-          margin-top: 12px;
-          height: 24px;
-          position: relative;
-        }
-        .metric-sparkline svg {
-          width: 100%;
-          height: 100%;
-        }
-      `}</style>
     </div>
   );
 }

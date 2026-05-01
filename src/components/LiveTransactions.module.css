@@ -1,0 +1,26 @@
+.liveTxn {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  border: 1px solid rgba(203, 213, 225, 0.4);
+  animation: cardEnter 0.5s ease-out both;
+  animation-delay: 400ms;
+  overflow: hidden;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-slate-100);
+}
+.tableWrap { overflow-x: auto; }
+.flowCell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+.flowFrom { color: var(--color-slate-700); font-weight: 500; }
+.flowArrow { color: var(--color-primary-500); font-weight: 700; }
+.flowTo { color: var(--color-slate-600); }

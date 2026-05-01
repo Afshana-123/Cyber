@@ -1,0 +1,16 @@
+.tenderCard { cursor: pointer; overflow: hidden; }
+.cardTop { padding: 20px 20px 12px; }
+.cardHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.name { font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--color-slate-900); margin-bottom: 6px; }
+.meta { display: flex; gap: 16px; font-size: 12px; color: var(--color-slate-500); }
+.metaItem { display: flex; align-items: center; gap: 4px; }
+.cardBody { padding: 12px 20px 20px; }
+.budgetRow { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--color-slate-100); }
+.budgetLabel { color: var(--color-slate-500); font-weight: 500; }
+.budgetValue { font-weight: 700; font-family: var(--font-display); color: var(--color-slate-900); }
+.bidStats { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.bidStat { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-slate-600); }
+.winnerRow { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--color-emerald-50); border-radius: var(--radius-md); margin-bottom: 14px; }
+.winnerLabel { font-size: 12px; font-weight: 600; color: var(--color-emerald-700); }
+.winnerName { font-size: 13px; font-weight: 600; color: var(--color-emerald-800); }
+.bidDeadline { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-slate-500); padding-top: 12px; border-top: 1px solid var(--color-slate-100); }

@@ -1,0 +1,184 @@
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: var(--gradient-primary);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebarLogo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.sidebarLogoIcon {
+  color: rgba(255,255,255,0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebarLogoText {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebarBrand {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.01em;
+}
+
+.sidebarTagline {
+  font-family: var(--font-label);
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.02em;
+}
+
+.sidebarNav {
+  padding: 16px 12px;
+  flex: 1;
+}
+
+.sidebarSystem {
+  flex: 0;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.sidebarSectionLabel {
+  font-family: var(--font-label);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.35);
+  padding: 8px 12px 8px;
+}
+
+.sidebarItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: rgba(255,255,255,0.65);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 150ms ease;
+  position: relative;
+  margin-bottom: 2px;
+  text-decoration: none;
+}
+
+.sidebarItem:hover {
+  color: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.06);
+}
+
+.sidebarItemActive {
+  composes: sidebarItem;
+  color: white;
+  background: rgba(255,255,255,0.12);
+  font-weight: 600;
+}
+
+.sidebarItemActive::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background: white;
+  border-radius: 0 3px 3px 0;
+}
+
+.sidebarItemIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.sidebarItemLabel {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebarBadge {
+  margin-left: auto;
+  background: var(--color-red-600);
+  color: white;
+  font-family: var(--font-label);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.sidebarUser {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.sidebarUser:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.sidebarAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-label);
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.sidebarUserInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sidebarUserName {
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sidebarUserRole {
+  color: rgba(255,255,255,0.5);
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}

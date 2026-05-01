@@ -1,0 +1,102 @@
+/* ===== Projects Page ===== */
+.stats { display: flex; gap: 12px; }
+.statPill {
+  padding: 8px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--color-slate-200);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  color: var(--color-slate-600);
+}
+.statNumber {
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--color-slate-900);
+}
+.projectCard { cursor: pointer; overflow: hidden; }
+.cardTop { padding: 20px 20px 12px; }
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.risk {
+  font-family: var(--font-label);
+  font-size: 12px;
+  font-weight: 600;
+}
+.name {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-slate-900);
+  margin-bottom: 6px;
+}
+.meta {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--color-slate-500);
+}
+.metaItem { display: flex; align-items: center; gap: 4px; }
+.cardBody { padding: 12px 20px 20px; }
+.progressSection {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.ringWrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+.ring { width: 100%; height: 100%; }
+.ringText {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-slate-900);
+}
+.budgetInfo { flex: 1; }
+.budgetRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.budgetLabel { color: var(--color-slate-500); }
+.budgetValue { font-weight: 600; }
+.barTrack {
+  height: 6px;
+  background: var(--color-slate-100);
+  border-radius: 3px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.barFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1s ease-out;
+}
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-slate-100);
+  font-size: 12px;
+  color: var(--color-slate-500);
+}
+.verified {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-emerald-600);
+}

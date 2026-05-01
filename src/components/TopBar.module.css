@@ -1,0 +1,163 @@
+.topbar {
+  position: fixed;
+  top: 0;
+  left: var(--sidebar-width);
+  right: 0;
+  height: var(--topbar-height);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-slate-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-lg);
+  z-index: 90;
+}
+
+.topbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.topbarSearch {
+  position: relative;
+  max-width: 480px;
+  width: 100%;
+}
+
+.topbarSearchIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-slate-400);
+  pointer-events: none;
+}
+
+.topbarSearchInput {
+  width: 100%;
+  padding: 10px 70px 10px 42px;
+  background: var(--color-slate-50);
+  border: 1.5px solid var(--color-slate-200);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: var(--color-slate-900);
+  transition: all 200ms ease;
+  font-family: var(--font-body);
+}
+
+.topbarSearchInput::placeholder {
+  color: var(--color-slate-400);
+}
+
+.topbarSearchInput:focus {
+  background: white;
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  outline: none;
+}
+
+.topbarSearchShortcut {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--color-slate-200);
+  color: var(--color-slate-500);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--font-label);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.topbarStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--color-emerald-50);
+  border: 1px solid var(--color-emerald-100);
+  border-radius: var(--radius-full);
+  color: var(--color-emerald-700);
+  font-family: var(--font-label);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.topbarStatusDot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-emerald-500);
+  border-radius: 50%;
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+.topbarNotification {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--color-slate-600);
+  transition: all 150ms ease;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.topbarNotification:hover {
+  background: var(--color-slate-100);
+  color: var(--color-slate-900);
+}
+
+.topbarNotificationBadge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  background: var(--color-red-600);
+  color: white;
+  border-radius: 50%;
+  font-family: var(--font-label);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+}
+
+.topbarAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-label);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 1023px) {
+  .topbar { left: var(--sidebar-collapsed); }
+}
+@media (max-width: 767px) {
+  .topbar { left: 0; }
+}

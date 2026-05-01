@@ -1,0 +1,27 @@
+.fundFlow {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  border: 1px solid rgba(203, 213, 225, 0.4);
+  animation: cardEnter 0.5s ease-out both;
+  animation-delay: 100ms;
+  overflow: hidden;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-slate-100);
+}
+.controls { display: flex; gap: 4px; }
+.activeFilter {
+  background: var(--color-primary-50) !important;
+  border-color: var(--color-primary-300) !important;
+  color: var(--color-primary-700) !important;
+}
+.canvas { padding: 16px; overflow-x: auto; }
+.svg { width: 100%; min-width: 600px; height: auto; }
+.node { cursor: pointer; transition: opacity 200ms ease; }
+.node:hover { opacity: 0.85; }
+.animated { animation: flowDash 1s linear infinite; }

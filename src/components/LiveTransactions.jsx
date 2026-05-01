@@ -1,6 +1,7 @@
 'use client';
 import { ShieldCheck, AlertTriangle, Clock, ExternalLink } from 'lucide-react';
 import { formatCurrency } from '@/data/mockData';
+import styles from './LiveTransactions.module.css';
 
 export default function LiveTransactions({ transactions }) {
   const getStatusBadge = (status) => {
@@ -13,14 +14,14 @@ export default function LiveTransactions({ transactions }) {
   };
 
   return (
-    <div className="live-txn">
-      <div className="live-txn-header">
+    <div className={styles.liveTxn}>
+      <div className={styles.header}>
         <h3 className="heading-3">Live Ledger Stream</h3>
         <button className="btn btn-sm btn-secondary">
           View All <ExternalLink size={14} />
         </button>
       </div>
-      <div className="live-txn-table-wrap">
+      <div className={styles.tableWrap}>
         <table className="data-table">
           <thead>
             <tr>
@@ -42,10 +43,10 @@ export default function LiveTransactions({ transactions }) {
                   <td>{txn.project}</td>
                   <td className="amount-cell">{formatCurrency(txn.amount)}</td>
                   <td>
-                    <span className="flow-cell">
-                      <span className="flow-from">{txn.from}</span>
-                      <span className="flow-arrow">→</span>
-                      <span className="flow-to">{txn.to}</span>
+                    <span className={styles.flowCell}>
+                      <span className={styles.flowFrom}>{txn.from}</span>
+                      <span className={styles.flowArrow}>→</span>
+                      <span className={styles.flowTo}>{txn.to}</span>
                     </span>
                   </td>
                   <td>
@@ -61,37 +62,6 @@ export default function LiveTransactions({ transactions }) {
           </tbody>
         </table>
       </div>
-
-      <style jsx>{`
-        .live-txn {
-          background: var(--bg-card);
-          border-radius: var(--radius-lg);
-          box-shadow: var(--shadow-1);
-          border: 1px solid rgba(203, 213, 225, 0.4);
-          animation: cardEnter 0.5s ease-out both;
-          animation-delay: 400ms;
-          overflow: hidden;
-        }
-        .live-txn-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 20px 24px;
-          border-bottom: 1px solid var(--color-slate-100);
-        }
-        .live-txn-table-wrap {
-          overflow-x: auto;
-        }
-        .flow-cell {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 13px;
-        }
-        .flow-from { color: var(--color-slate-700); font-weight: 500; }
-        .flow-arrow { color: var(--color-primary-500); font-weight: 700; }
-        .flow-to { color: var(--color-slate-600); }
-      `}</style>
     </div>
   );
 }

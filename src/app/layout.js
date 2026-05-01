@@ -1,6 +1,4 @@
 import './globals.css';
-import Sidebar from '@/components/Sidebar';
-import TopBar from '@/components/TopBar';
 
 export const metadata = {
   title: 'ChainTrust — Institutional Public Ledger',
@@ -16,15 +14,7 @@ export default function RootLayout({ children }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body>
-        <div className="app-layout">
-          <Sidebar />
-          <div className="main-area">
-            <TopBar />
-            <main>{children}</main>
-          </div>
-        </div>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
