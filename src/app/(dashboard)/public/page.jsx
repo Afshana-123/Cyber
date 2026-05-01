@@ -1,13 +1,79 @@
 'use client';
-import { Eye, Search, ShieldCheck, AlertTriangle, IndianRupee, FolderOpen, Activity, MapPin, Hexagon, Loader2, Users } from 'lucide-react';
+import { useState, useMemo, Suspense, lazy } from 'react';
+import { Eye, Search, ShieldCheck, AlertTriangle, IndianRupee, FolderOpen, Activity, MapPin, Hexagon, Loader2, Users, List, Map, Filter, X, ChevronDown } from 'lucide-react';
 import { useSupabase, formatTimestamp } from '@/lib/hooks';
+import styles from './page.module.css';
+
+const ProjectMap = lazy(() => import('@/components/ProjectMap'));
 
 export default function PublicPage() {
   const { data: stats, loading: statsLoading } = useSupabase('/api/dashboard');
   const { data: projects, loading: projLoading } = useSupabase('/api/projects');
   const { data: transactions, loading: txnLoading } = useSupabase('/api/transactions');
 
+  // View toggle state
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
+
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [riskFilter, setRiskFilter] = useState('all');
+  const [districtFilter, setDistrictFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
+
   const isLoading = statsLoading || projLoading || txnLoading;
+
+  const projectList = projects || [];
+  const txnList = transactions || [];
+
+  // Extract unique districts and statuses for filter dropdowns
+  const uniqueDistricts = [...new Set(projectList.map(p => p.districts?.name).filter(Boolean))].sort();
+  const uniqueStatuses = [...new Set(projectList.map(p => p.status).filter(Boolean))];
+
+  // Filtered + sorted projects
+  const filteredProjects = useMemo(() => {
+    let result = [...projectList];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(p =>
+        p.name?.toLowerCase().includes(q) ||
+        p.contractor_name?.toLowerCase().includes(q) ||
+        p.districts?.name?.toLowerCase().includes(q) ||
+        p.districts?.state?.toLowerCase().includes(q)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      result = result.filter(p => p.status === statusFilter);
+    }
+
+    // Risk filter
+    if (riskFilter !== 'all') {
+      if (riskFilter === 'low') result = result.filter(p => (p.risk_score || 0) <= 30);
+      else if (riskFilter === 'medium') result = result.filter(p => (p.risk_score || 0) > 30 && (p.risk_score || 0) <= 60);
+      else if (riskFilter === 'high') result = result.filter(p => (p.risk_score || 0) > 60);
+    }
+
+    // District filter
+    if (districtFilter !== 'all') {
+      result = result.filter(p => p.districts?.name === districtFilter);
+    }
+
+    // Sort
+    if (sortBy === 'name') result.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    else if (sortBy === 'risk_high') result.sort((a, b) => (b.risk_score || 0) - (a.risk_score || 0));
+    else if (sortBy === 'risk_low') result.sort((a, b) => (a.risk_score || 0) - (b.risk_score || 0));
+    else if (sortBy === 'value_high') result.sort((a, b) => Number(b.contract_value_cr || 0) - Number(a.contract_value_cr || 0));
+    else if (sortBy === 'value_low') result.sort((a, b) => Number(a.contract_value_cr || 0) - Number(b.contract_value_cr || 0));
+
+    return result;
+  }, [projectList, searchQuery, statusFilter, riskFilter, districtFilter, sortBy]);
+
+  const activeFilterCount = [statusFilter !== 'all', riskFilter !== 'all', districtFilter !== 'all'].filter(Boolean).length;
 
   if (isLoading) {
     return (
@@ -17,8 +83,13 @@ export default function PublicPage() {
     );
   }
 
-  const projectList = projects || [];
-  const txnList = transactions || [];
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setRiskFilter('all');
+    setDistrictFilter('all');
+    setSortBy('name');
+  };
 
   const getRiskColor = (score) => {
     if (score <= 30) return 'var(--color-emerald-500)';
@@ -44,7 +115,18 @@ export default function PublicPage() {
           </p>
           <div className="public-search-wrap">
             <Search size={18} />
-            <input type="text" placeholder="Search projects or transactions..." className="public-search" />
+            <input
+              type="text"
+              placeholder="Search projects, contractors, or districts..."
+              className="public-search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} style={{ color: 'rgba(255,255,255,0.6)', display: 'flex' }}>
+                <X size={16} />
+              </button>
+            )}
           </div>
         </div>
         <div className="public-hero-stats">
@@ -71,46 +153,198 @@ export default function PublicPage() {
         </div>
       </div>
 
-      {/* Public Project Explorer */}
+      {/* Project Explorer Header with Toggle + Filter */}
       <div className="section-gap">
-        <div className="section-header">
-          <h2 className="heading-2">All Projects</h2>
-          <span className="badge badge-verified"><span className="badge-dot"></span>Live Data</span>
+        <div className={styles.explorerHeader}>
+          <div className={styles.explorerLeft}>
+            <h2 className="heading-2">All Projects</h2>
+            <span className={styles.resultCount}>
+              {filteredProjects.length} of {projectList.length} projects
+            </span>
+          </div>
+
+          <div className={styles.explorerControls}>
+            {/* Filter Toggle */}
+            <button
+              className={`${styles.controlBtn} ${showFilters ? styles.controlBtnActive : ''}`}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter size={15} />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className={styles.filterBadge}>{activeFilterCount}</span>
+              )}
+            </button>
+
+            {/* View Toggle */}
+            <div className={styles.viewToggle}>
+              <button
+                className={`${styles.toggleBtn} ${viewMode === 'list' ? styles.toggleBtnActive : ''}`}
+                onClick={() => setViewMode('list')}
+                title="List View"
+              >
+                <List size={16} />
+                <span>List</span>
+              </button>
+              <button
+                className={`${styles.toggleBtn} ${viewMode === 'map' ? styles.toggleBtnActive : ''}`}
+                onClick={() => setViewMode('map')}
+                title="Map View"
+              >
+                <Map size={16} />
+                <span>Map</span>
+              </button>
+            </div>
+
+            <span className="badge badge-verified"><span className="badge-dot"></span>Live Data</span>
+          </div>
         </div>
-        <div className="grid-3">
-          {projectList.map((project, i) => {
-            const contractValue = Number(project.contract_value_cr || 0);
-            return (
-              <div key={project.id} className="public-project-card card" style={{ animationDelay: `${i * 100}ms` }}>
-                <div className="public-project-top">
-                  <div className="public-project-category">{project.status}</div>
-                  <h3 className="public-project-name">{project.name}</h3>
-                  <span className="public-project-loc"><MapPin size={13} /> {project.districts?.name || 'India'}, {project.districts?.state || ''}</span>
-                </div>
-                <div className="public-project-body">
-                  <div className="public-project-budget">
-                    <div className="public-budget-item">
-                      <span className="public-budget-label">Contract Value</span>
-                      <span className="public-budget-val">₹{contractValue.toFixed(2)} Cr</span>
-                    </div>
-                    <div className="public-budget-item">
-                      <span className="public-budget-label">Contractor</span>
-                      <span style={{ fontSize: '13px', fontWeight: 500 }}>{project.contractor_name}</span>
-                    </div>
-                  </div>
-                  <div className="public-project-trust">
-                    {project.risk_score > 50 ? (
-                      <AlertTriangle size={14} style={{ color: 'var(--color-red-600)' }} />
-                    ) : (
-                      <ShieldCheck size={14} style={{ color: 'var(--color-emerald-600)' }} />
-                    )}
-                    <span>Risk Score: <strong style={{ color: getRiskColor(project.risk_score) }}>{project.risk_score}/100</strong></span>
-                  </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className={styles.filterPanel}>
+            <div className={styles.filterGrid}>
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>Status</label>
+                <div className={styles.selectWrap}>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className={styles.filterSelect}
+                  >
+                    <option value="all">All Statuses</option>
+                    {uniqueStatuses.map(s => (
+                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className={styles.selectIcon} />
                 </div>
               </div>
-            );
-          })}
-        </div>
+
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>Risk Level</label>
+                <div className={styles.selectWrap}>
+                  <select
+                    value={riskFilter}
+                    onChange={(e) => setRiskFilter(e.target.value)}
+                    className={styles.filterSelect}
+                  >
+                    <option value="all">All Levels</option>
+                    <option value="low">Low (0-30)</option>
+                    <option value="medium">Medium (31-60)</option>
+                    <option value="high">High (61-100)</option>
+                  </select>
+                  <ChevronDown size={14} className={styles.selectIcon} />
+                </div>
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>District</label>
+                <div className={styles.selectWrap}>
+                  <select
+                    value={districtFilter}
+                    onChange={(e) => setDistrictFilter(e.target.value)}
+                    className={styles.filterSelect}
+                  >
+                    <option value="all">All Districts</option>
+                    {uniqueDistricts.map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className={styles.selectIcon} />
+                </div>
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>Sort By</label>
+                <div className={styles.selectWrap}>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className={styles.filterSelect}
+                  >
+                    <option value="name">Name (A-Z)</option>
+                    <option value="risk_high">Risk (High → Low)</option>
+                    <option value="risk_low">Risk (Low → High)</option>
+                    <option value="value_high">Value (High → Low)</option>
+                    <option value="value_low">Value (Low → High)</option>
+                  </select>
+                  <ChevronDown size={14} className={styles.selectIcon} />
+                </div>
+              </div>
+            </div>
+
+            {activeFilterCount > 0 && (
+              <div className={styles.filterActions}>
+                <button className={styles.clearBtn} onClick={clearAllFilters}>
+                  <X size={14} />
+                  Clear all filters
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* List View */}
+        {viewMode === 'list' && (
+          filteredProjects.length === 0 ? (
+            <div className="card" style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <Search size={40} style={{ color: 'var(--color-slate-300)', marginBottom: '12px' }} />
+              <p style={{ fontSize: '16px', color: 'var(--color-slate-500)', fontWeight: 500 }}>No projects match your filters</p>
+              <p style={{ fontSize: '13px', color: 'var(--color-slate-400)', marginTop: '4px' }}>Try adjusting your search or filter criteria</p>
+              {activeFilterCount > 0 && (
+                <button className={styles.clearBtnInline} onClick={clearAllFilters}>Clear filters</button>
+              )}
+            </div>
+          ) : (
+            <div className="grid-3">
+              {filteredProjects.map((project, i) => {
+                const contractValue = Number(project.contract_value_cr || 0);
+                return (
+                  <div key={project.id} className="public-project-card card" style={{ animationDelay: `${i * 100}ms` }}>
+                    <div className="public-project-top">
+                      <div className="public-project-category">{project.status}</div>
+                      <h3 className="public-project-name">{project.name}</h3>
+                      <span className="public-project-loc"><MapPin size={13} /> {project.districts?.name || 'India'}, {project.districts?.state || ''}</span>
+                    </div>
+                    <div className="public-project-body">
+                      <div className="public-project-budget">
+                        <div className="public-budget-item">
+                          <span className="public-budget-label">Contract Value</span>
+                          <span className="public-budget-val">₹{contractValue.toFixed(2)} Cr</span>
+                        </div>
+                        <div className="public-budget-item">
+                          <span className="public-budget-label">Contractor</span>
+                          <span style={{ fontSize: '13px', fontWeight: 500 }}>{project.contractor_name}</span>
+                        </div>
+                      </div>
+                      <div className="public-project-trust">
+                        {project.risk_score > 50 ? (
+                          <AlertTriangle size={14} style={{ color: 'var(--color-red-600)' }} />
+                        ) : (
+                          <ShieldCheck size={14} style={{ color: 'var(--color-emerald-600)' }} />
+                        )}
+                        <span>Risk Score: <strong style={{ color: getRiskColor(project.risk_score) }}>{project.risk_score}/100</strong></span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        )}
+
+        {/* Map View */}
+        {viewMode === 'map' && (
+          <Suspense fallback={
+            <div className={styles.mapLoading}>
+              <Loader2 size={28} className="spin" style={{ color: 'var(--color-primary-500)' }} />
+              <span>Loading interactive map...</span>
+            </div>
+          }>
+            <ProjectMap projects={filteredProjects} />
+          </Suspense>
+        )}
       </div>
 
       {/* Public Transaction Ledger */}
