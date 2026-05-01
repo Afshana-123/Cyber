@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../flutter_flow/flutter_flow_theme.dart';
-import '../../services/mock_api.dart';
 
+/// QR scan page — reads any QR code and passes its value as project_id.
+/// The value can be a project UUID, district UUID, or any string.
 class QrScanPage extends StatefulWidget {
   const QrScanPage({super.key});
   @override
@@ -20,12 +21,11 @@ class _QrScanPageState extends State<QrScanPage> {
   void _onDetect(BarcodeCapture cap) {
     if (_handled) return;
     final code = cap.barcodes.firstOrNull?.rawValue;
-    if (code == null) return;
+    if (code == null || code.isEmpty) return;
     _handled = true;
-    // Accept either a known project ID or any QR — fall back to first project
-    final match = MockApi.I.projects.any((p) => p.id == code)
-        ? code : MockApi.I.projects.first.id;
-    context.pushReplacement('/auditor/inspect?pid=$match');
+    // Pass the QR value as the project ID — InspectionFormPage will call
+    // /api/contract/:id to resolve it against the real DB.
+    context.pushReplacement('/auditor/inspect?pid=$code');
   }
 
   @override
@@ -42,19 +42,26 @@ class _QrScanPageState extends State<QrScanPage> {
         MobileScanner(controller: _ctrl, onDetect: _onDetect),
         Center(child: Container(
           width: 260, height: 260,
-          decoration: BoxDecoration(border: Border.all(color: Colors.white, width: 3), borderRadius: BorderRadius.circular(20)),
+          decoration: BoxDecoration(
+              border: Border.all(color: Colors.white, width: 3),
+              borderRadius: BorderRadius.circular(20)),
         )),
         Positioned(
           left: 0, right: 0, bottom: 40,
           child: Column(children: [
-            const Text('Align the QR within the box', style: TextStyle(color: Colors.white)),
+            const Text('Align the QR code within the box',
+                style: TextStyle(color: Colors.white)),
             const SizedBox(height: 12),
             TextButton(
+              // Demo: navigates directly to inspection without a real QR
               onPressed: () {
+                if (_handled) return;
                 _handled = true;
-                context.pushReplacement('/auditor/inspect?pid=${MockApi.I.projects.first.id}');
+                // Use a placeholder ID — will show "Site Inspection" as project name
+                context.pushReplacement('/auditor/inspect?pid=demo');
               },
-              child: Text('Simulate scan (demo)', style: TextStyle(color: t.tertiary)),
+              child: Text('Simulate scan (demo)',
+                  style: TextStyle(color: t.tertiary)),
             ),
           ]),
         ),

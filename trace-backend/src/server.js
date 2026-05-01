@@ -25,7 +25,8 @@ app.use('/api/risk-score', require('./routes/riskScore'));
 app.use('/api',            require('./routes/reports'));     // POST /api/report, /api/inspection
 app.use('/api/invoice',    require('./routes/invoices'));
 app.use('/api/milestone',  require('./routes/milestones'));
-app.use('/api/payments',   require('./routes/payments'));
+app.use('/api/payments',    require('./routes/payments'));
+app.use('/api/blockchain',  require('./routes/blockchain'));
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {

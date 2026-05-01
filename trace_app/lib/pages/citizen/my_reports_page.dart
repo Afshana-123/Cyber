@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../app_state.dart';
 import '../../flutter_flow/flutter_flow_theme.dart';
-import '../../services/mock_api.dart';
 import '../../widgets/common.dart';
 
+/// Shows reports submitted during the current session.
+/// In production these would be fetched from /api/reports?submitted_by=phone.
 class MyReportsPage extends StatelessWidget {
   const MyReportsPage({super.key});
   @override
   Widget build(BuildContext context) {
-    final t = FlutterFlowTheme.of(context);
-    final reports = MockApi.I.myReports;
+    final t       = FlutterFlowTheme.of(context);
+    final reports = AppState().myReports; // session-scoped list
+
     return Scaffold(
       appBar: AppBar(title: const Text('My Reports')),
       body: reports.isEmpty
@@ -18,7 +21,8 @@ class MyReportsPage extends StatelessWidget {
               const SizedBox(height: 12),
               Text('No reports yet', style: t.headlineSmall),
               const SizedBox(height: 4),
-              Text('Your submitted reports will appear here.', style: t.bodyMedium.copyWith(color: t.secondaryText)),
+              Text('Your submitted reports will appear here.',
+                  style: t.bodyMedium.copyWith(color: t.secondaryText)),
             ]))
           : ListView(
               padding: const EdgeInsets.all(16),
@@ -26,13 +30,19 @@ class MyReportsPage extends StatelessWidget {
                 child: Row(children: [
                   Container(
                     width: 44, height: 44,
-                    decoration: BoxDecoration(color: t.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                    decoration: BoxDecoration(
+                        color: t.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10)),
                     child: Icon(Icons.description_outlined, color: t.primary),
                   ),
                   const SizedBox(width: 12),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(r.id ?? '-', style: t.titleMedium),
-                    Text('${r.category} • ${DateFormat('d MMM, HH:mm').format(r.createdAt)}', style: t.bodySmall),
+                    Text(r.id ?? '—', style: t.titleMedium),
+                    Text(
+                      '${r.category.replaceAll('_', ' ')} • '
+                      '${DateFormat('d MMM, HH:mm').format(r.createdAt)}',
+                      style: t.bodySmall,
+                    ),
                   ])),
                   StatusPill(label: r.status, color: statusColor(r.status, context)),
                 ]),

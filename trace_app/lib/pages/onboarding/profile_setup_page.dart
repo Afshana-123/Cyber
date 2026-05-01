@@ -52,7 +52,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter last 4 of Aadhaar')));
                 return;
               }
-              AppState().setProfile(n: _name.text.trim(), d: _district.text.trim(), a: _aadhaar.text);
+              AppState().setProfile(n: _name.text.trim(), d: _district.text.trim(), dId: '', a: _aadhaar.text);
               switch (role) {
                 case UserRole.citizen: context.go('/citizen'); break;
                 case UserRole.auditor: context.go('/auditor'); break;

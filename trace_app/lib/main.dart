@@ -21,6 +21,7 @@ import 'pages/contractor/contractor_home_page.dart';
 import 'pages/contractor/submit_invoice_page.dart';
 import 'pages/contractor/submit_milestone_page.dart';
 import 'pages/contractor/payment_tracker_page.dart';
+import 'pages/shared/blockchain_ledger_page.dart';
 
 void main() => runApp(const TraceApp());
 
@@ -45,7 +46,9 @@ final _router = GoRouter(
     GoRoute(path: '/contractor', builder: (_, __) => const ContractorHomePage()),
     GoRoute(path: '/contractor/invoice', builder: (_, __) => const SubmitInvoicePage()),
     GoRoute(path: '/contractor/milestone', builder: (_, __) => const SubmitMilestonePage()),
-    GoRoute(path: '/contractor/payments', builder: (_, s) => PaymentTrackerPage(contractId: s.uri.queryParameters['cid'] ?? 'JHS-RD-017')),
+    GoRoute(path: '/contractor/payments', builder: (_, s) => PaymentTrackerPage(contractId: s.uri.queryParameters['cid'] ?? '')),
+    // Blockchain — accessible from all roles
+    GoRoute(path: '/blockchain', builder: (_, __) => const BlockchainLedgerPage()),
   ],
 );
 
