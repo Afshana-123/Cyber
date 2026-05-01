@@ -73,12 +73,20 @@ class _SubmitMilestonePageState extends State<SubmitMilestonePage> {
         children: [
           SectionCard(title: 'Contract', child: DropdownButtonFormField<String>(
             value: _contract,
-            items: MockApi.I.contracts.map((c) => DropdownMenuItem(value: c.id, child: Text('${c.id} — ${c.name}'))).toList(),
+            isExpanded: true,
+            items: MockApi.I.contracts.map((c) => DropdownMenuItem(
+              value: c.id,
+              child: Text('${c.id} — ${c.name}', overflow: TextOverflow.ellipsis, maxLines: 1),
+            )).toList(),
             onChanged: (v) { setState(() => _contract = v!); _getLocation(); },
           )),
           SectionCard(title: 'Milestone', child: DropdownButtonFormField<int>(
             value: _milestone,
-            items: List.generate(4, (i) => i + 1).map((i) => DropdownMenuItem(value: i, child: Text('Milestone $i of 4'))).toList(),
+            isExpanded: true,
+            items: List.generate(4, (i) => i + 1).map((i) => DropdownMenuItem(
+              value: i,
+              child: Text('Milestone $i of 4', overflow: TextOverflow.ellipsis, maxLines: 1),
+            )).toList(),
             onChanged: (v) => setState(() => _milestone = v!),
           )),
           SectionCard(title: 'Location check', child: Row(children: [

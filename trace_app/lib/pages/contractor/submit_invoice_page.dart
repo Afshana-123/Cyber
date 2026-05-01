@@ -30,14 +30,22 @@ class _SubmitInvoicePageState extends State<SubmitInvoicePage> {
         children: [
           SectionCard(title: 'Contract', child: DropdownButtonFormField<String>(
             value: _contract,
-            items: MockApi.I.contracts.map((c) => DropdownMenuItem(value: c.id, child: Text('${c.id} — ${c.name}'))).toList(),
+            isExpanded: true,
+            items: MockApi.I.contracts.map((c) => DropdownMenuItem(
+              value: c.id,
+              child: Text('${c.id} — ${c.name}', overflow: TextOverflow.ellipsis, maxLines: 1),
+            )).toList(),
             onChanged: (v) => setState(() => _contract = v!),
           )),
           SectionCard(title: 'Material', child: DropdownButtonFormField<String>(
             value: _material,
+            isExpanded: true,
             items: const [
               'Cement (OPC 53)', 'Steel rebar', 'Bitumen', 'Aggregate', 'Concrete blocks'
-            ].map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+            ].map((m) => DropdownMenuItem(
+              value: m,
+              child: Text(m, overflow: TextOverflow.ellipsis, maxLines: 1),
+            )).toList(),
             onChanged: (v) => setState(() => _material = v!),
           )),
           SectionCard(title: 'GST invoice photo', child: GestureDetector(
