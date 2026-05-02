@@ -47,6 +47,27 @@ export default function TransactionsPage() {
     navigator.clipboard.writeText(hash || '');
   };
 
+  const exportCSV = () => {
+    const headers = ['Event Type','Amount (Cr)','Entity','Location','District','TX Hash','Timestamp'];
+    const rows = filtered.map(t => [
+      t.event_type || '',
+      Number(t.amount_cr || 0).toFixed(2),
+      t.entity_type || '',
+      t.location || '',
+      t.districts?.name || '',
+      t.tx_hash || '',
+      t.timestamp || '',
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `transactions_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="page-content">
       <div className="page-header">
@@ -55,14 +76,14 @@ export default function TransactionsPage() {
           <p className="page-subtitle">All fund movements tracked on the blockchain ledger.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button className="btn btn-secondary btn-sm"><Download size={16} /> Export</button>
+          <button className="btn btn-secondary btn-sm" onClick={exportCSV}><Download size={16} /> Export</button>
           <button className="btn btn-secondary btn-sm"><Filter size={16} /> Filter</button>
         </div>
       </div>
 
       <div className={`${styles.summary} section-gap`}>
         <div className={styles.statCard}>
-          <span className={styles.statValue}>₹{totalVolumeCr} Cr</span>
+          <span className={styles.statValue}>₹{totalVolumeCr.toFixed(2)} Cr</span>
           <span className={styles.statLabel}>Total Volume</span>
         </div>
         <div className={styles.statCard}>

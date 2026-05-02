@@ -1,13 +1,31 @@
 'use client';
 import { useState } from 'react';
-import { MessageSquareWarning, MapPin, Clock, Camera, Loader2, AlertTriangle, CheckCircle, Search, Eye } from 'lucide-react';
+import {
+  MessageSquareWarning, MapPin, Clock, Camera, Loader2,
+  AlertTriangle, CheckCircle, Search, ExternalLink, X,
+  Shield, Construction, ClipboardCheck, FileText, User, Scan
+} from 'lucide-react';
 import { useSupabase, timeAgo } from '@/lib/hooks';
 import styles from './page.module.css';
 
-const STATUS_MAP = {
-  received: { label: 'Received', cssClass: 'statusReceived' },
-  under_investigation: { label: 'Under Investigation', cssClass: 'statusUnderInvestigation' },
-  resolved: { label: 'Resolved', cssClass: 'statusResolved' },
+const CATEGORY_MAP = {
+  road_quality:        { icon: Construction,   label: 'Road Quality',       cls: 'catRoad' },
+  poor_quality_material: { icon: Construction, label: 'Poor Quality Material', cls: 'catRoad' },
+  ghost_project:       { icon: AlertTriangle,  label: 'Ghost Project',      cls: 'catGhost' },
+  suspicious_activity: { icon: Shield,         label: 'Suspicious Activity', cls: 'catSuspicious' },
+  inspection:          { icon: ClipboardCheck, label: 'Official Inspection', cls: 'catInspection' },
+};
+
+const ACCENT_MAP = {
+  received: 'accentReceived',
+  under_investigation: 'accentInvestigating',
+  resolved: 'accentResolved',
+};
+
+const STATUS_CLS = {
+  received: 'statusReceived',
+  under_investigation: 'statusInvestigating',
+  resolved: 'statusResolved',
 };
 
 export default function CitizenReportsPage() {
@@ -15,25 +33,17 @@ export default function CitizenReportsPage() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [updating, setUpdating] = useState(null);
-  // Local override for optimistic UI — tracks in-flight status changes
-  const [localStatuses, setLocalStatuses] = useState({});
+  const [lightboxReport, setLightboxReport] = useState(null);
 
   const handleStatusChange = async (reportId, newStatus) => {
     setUpdating(reportId);
-    // Optimistic: update locally immediately so KPIs refresh
-    setLocalStatuses(prev => ({ ...prev, [reportId]: newStatus }));
     try {
       const res = await fetch('/api/reports', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: reportId, status: newStatus }),
       });
-      if (!res.ok) {
-        // Rollback on failure
-        setLocalStatuses(prev => { const next = { ...prev }; delete next[reportId]; return next; });
-        throw new Error('Failed to update');
-      }
-      // Silently refresh data from server
+      if (!res.ok) throw new Error('Failed to update');
       refetch();
     } catch (err) {
       console.error(err);
@@ -50,66 +60,40 @@ export default function CitizenReportsPage() {
     );
   }
 
-  // Merge server data with optimistic local overrides
-  const enrichedReports = (reports || []).map(r => ({
-    ...r,
-    status: localStatuses[r.id] || r.status || 'received',
-  }));
-
-  const reportList = enrichedReports
-    .filter(r => {
-      if (filterStatus !== 'all' && r.status !== filterStatus) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return (
-          r.category?.toLowerCase().includes(q) ||
-          r.description?.toLowerCase().includes(q) ||
-          r.districts?.name?.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-
-  const totalReports = enrichedReports.length;
-  const receivedCount = enrichedReports.filter(r => r.status === 'received').length;
-  const investigatingCount = enrichedReports.filter(r => r.status === 'under_investigation').length;
-  const resolvedCount = enrichedReports.filter(r => r.status === 'resolved').length;
-
-  const getCategoryIcon = (cat) => {
-    switch (cat) {
-      case 'road_quality': case 'Road Quality': return '🛣️';
-      case 'ghost_project': return '👻';
-      case 'suspicious_activity': return '🔍';
-      case 'inspection': return '📋';
-      default: return '📝';
+  const all = reports || [];
+  const reportList = all.filter(r => {
+    if (filterStatus !== 'all' && r.status !== filterStatus) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        r.category?.toLowerCase().includes(q) ||
+        r.description?.toLowerCase().includes(q) ||
+        r.districts?.name?.toLowerCase().includes(q)
+      );
     }
-  };
+    return true;
+  });
 
-  const getCategoryLabel = (cat) => {
-    return (cat || 'other').replace(/_/g, ' ');
-  };
+  const totalReports = all.length;
+  const receivedCount = all.filter(r => r.status === 'received').length;
+  const investigatingCount = all.filter(r => r.status === 'under_investigation').length;
+  const resolvedCount = all.filter(r => r.status === 'resolved').length;
 
-  const getStatusCssClass = (status) => {
-    return STATUS_MAP[status]?.cssClass || 'statusReceived';
-  };
+  const getCat = (cat) =>
+    CATEGORY_MAP[cat] || { icon: FileText, label: (cat || 'Other').replace(/_/g, ' '), cls: 'catDefault' };
 
   return (
     <div className="page-content">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <MessageSquareWarning size={24} style={{ color: 'var(--color-primary-500)' }} />
-            Citizen Reports
-          </h1>
-          <p className="page-subtitle">Reports submitted anonymously by citizens from the TRACE mobile app.</p>
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <select
-            className="btn btn-secondary btn-sm"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ cursor: 'pointer' }}
-          >
+      {/* Hero Header */}
+      <div className={styles.heroHeader}>
+        <div className={styles.heroContent}>
+          <div className={styles.heroLeft}>
+            <h1><MessageSquareWarning size={26} /> Citizen Reports</h1>
+            <p className={styles.heroSubtitle}>
+              Anonymous field reports submitted by citizens via the TRACE mobile app — geo-tagged, timestamped, and linked to active government projects.
+            </p>
+          </div>
+          <select className={styles.heroSelect} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
             <option value="all">All Status</option>
             <option value="received">Received</option>
             <option value="under_investigation">Under Investigation</option>
@@ -118,142 +102,153 @@ export default function CitizenReportsPage() {
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid-4 section-gap">
-        <div className="auditor-kpi">
-          <span className="auditor-kpi-icon" style={{ background: 'var(--color-primary-100)', color: 'var(--color-primary-700)' }}>
-            <MessageSquareWarning size={20} />
-          </span>
-          <div>
-            <span className="auditor-kpi-val">{totalReports}</span>
-            <span className="auditor-kpi-label">Total Reports</span>
-          </div>
+      {/* KPI Stats — clickable to filter */}
+      <div className={styles.kpiGrid}>
+        <div
+          className={`${styles.kpiCard} ${styles.kpiClickable} ${filterStatus === 'all' ? styles.kpiActive : ''}`}
+          onClick={() => setFilterStatus('all')}
+        >
+          <div className={`${styles.kpiIcon} ${styles.kpiIconTotal}`}><MessageSquareWarning size={22} /></div>
+          <div className={styles.kpiInfo}><span className={styles.kpiValue}>{totalReports}</span><span className={styles.kpiLabel}>Total Reports</span></div>
         </div>
-        <div className="auditor-kpi">
-          <span className="auditor-kpi-icon" style={{ background: 'var(--color-amber-100)', color: 'var(--color-amber-600)' }}>
-            <Clock size={20} />
-          </span>
-          <div>
-            <span className="auditor-kpi-val">{receivedCount}</span>
-            <span className="auditor-kpi-label">Pending Review</span>
-          </div>
+        <div
+          className={`${styles.kpiCard} ${styles.kpiClickable} ${filterStatus === 'received' ? styles.kpiActive : ''}`}
+          onClick={() => setFilterStatus('received')}
+        >
+          <div className={`${styles.kpiIcon} ${styles.kpiIconPending}`}><Clock size={22} /></div>
+          <div className={styles.kpiInfo}><span className={styles.kpiValue}>{receivedCount}</span><span className={styles.kpiLabel}>Pending Review</span></div>
         </div>
-        <div className="auditor-kpi">
-          <span className="auditor-kpi-icon" style={{ background: 'var(--color-primary-100)', color: 'var(--color-primary-700)' }}>
-            <Eye size={20} />
-          </span>
-          <div>
-            <span className="auditor-kpi-val">{investigatingCount}</span>
-            <span className="auditor-kpi-label">Investigating</span>
-          </div>
+        <div
+          className={`${styles.kpiCard} ${styles.kpiClickable} ${filterStatus === 'under_investigation' ? styles.kpiActive : ''}`}
+          onClick={() => setFilterStatus('under_investigation')}
+        >
+          <div className={`${styles.kpiIcon} ${styles.kpiIconInvestigating}`}><Scan size={22} /></div>
+          <div className={styles.kpiInfo}><span className={styles.kpiValue}>{investigatingCount}</span><span className={styles.kpiLabel}>Investigating</span></div>
         </div>
-        <div className="auditor-kpi">
-          <span className="auditor-kpi-icon" style={{ background: 'var(--color-emerald-100)', color: 'var(--color-emerald-700)' }}>
-            <CheckCircle size={20} />
-          </span>
-          <div>
-            <span className="auditor-kpi-val">{resolvedCount}</span>
-            <span className="auditor-kpi-label">Resolved</span>
-          </div>
+        <div
+          className={`${styles.kpiCard} ${styles.kpiClickable} ${filterStatus === 'resolved' ? styles.kpiActive : ''}`}
+          onClick={() => setFilterStatus('resolved')}
+        >
+          <div className={`${styles.kpiIcon} ${styles.kpiIconResolved}`}><CheckCircle size={22} /></div>
+          <div className={styles.kpiInfo}><span className={styles.kpiValue}>{resolvedCount}</span><span className={styles.kpiLabel}>Resolved</span></div>
         </div>
       </div>
 
       {/* Search */}
-      <div className="section-gap">
-        <div className="card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Search size={18} style={{ color: 'var(--color-slate-400)' }} />
-          <input
-            type="text"
-            placeholder="Search by category, description, or district..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              border: 'none', outline: 'none', width: '100%', fontSize: '14px',
-              background: 'transparent', color: 'var(--color-slate-700)',
-            }}
-          />
+      <div className={styles.toolbar}>
+        <div className={styles.searchBox}>
+          <Search size={18} style={{ color: 'var(--color-slate-400)', flexShrink: 0 }} />
+          <input className={styles.searchInput} type="text" placeholder="Search by category, description, or district..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          {search && <span className={styles.searchCount}>{reportList.length} found</span>}
         </div>
       </div>
 
-      {/* Reports List */}
+      {/* Reports */}
       {reportList.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--color-slate-400)' }}>
-          <MessageSquareWarning size={48} style={{ marginBottom: '12px', opacity: 0.5 }} />
-          <p style={{ fontSize: '16px' }}>No citizen reports found.</p>
-          <p style={{ fontSize: '13px' }}>Reports submitted from the TRACE mobile app will appear here.</p>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}><MessageSquareWarning size={36} /></div>
+          <p className={styles.emptyTitle}>No citizen reports found</p>
+          <p className={styles.emptySubtitle}>Reports submitted from the TRACE mobile app will appear here automatically.</p>
         </div>
       ) : (
-        <div className="grid-3">
-          {reportList.map((report, i) => (
-            <div key={report.id} className={`card ${styles.reportCard}`} style={{ animationDelay: `${i * 60}ms` }}>
-              <div className={styles.reportHeader}>
-                <div className={styles.reportMeta}>
-                  <span className={styles.reportCategory}>
-                    {getCategoryIcon(report.category)} {getCategoryLabel(report.category)}
-                  </span>
-                  <span className={styles.reportTime}>
-                    <Clock size={11} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                    {timeAgo(report.created_at)}
-                  </span>
-                </div>
-                <div className={styles.photoThumb}>
-                  <Camera size={20} />
-                </div>
-              </div>
-
-              <div className={styles.reportBody}>
-                <p className={styles.reportDescription}>
-                  {report.description || 'No description provided.'}
-                </p>
-
-                <div className={styles.reportInfoRow}>
-                  <MapPin size={14} />
-                  <span>{report.districts?.name || 'Unknown District'}{report.districts?.state ? `, ${report.districts.state}` : ''}</span>
-                </div>
-
-                {report.projects?.name && (
-                  <div className={styles.reportInfoRow}>
-                    <AlertTriangle size={14} style={{ color: 'var(--color-amber-500)' }} />
-                    <span>Linked to: <strong>{report.projects.name}</strong></span>
-                  </div>
-                )}
-
-                {report.gps_lat && report.gps_lng && (
-                  <div className={styles.reportInfoRow}>
-                    <a
-                      className={styles.gpsLink}
-                      href={`https://www.google.com/maps?q=${report.gps_lat},${report.gps_lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+        <div className={styles.reportGrid}>
+          {reportList.map((report, i) => {
+            const status = report.status || 'received';
+            const cat = getCat(report.category);
+            const CatIcon = cat.icon;
+            return (
+              <div key={report.id} className={styles.reportCard} style={{ animationDelay: `${i * 70}ms` }}>
+                <div className={`${styles.cardAccent} ${styles[ACCENT_MAP[status]] || styles.accentReceived}`} />
+                <div className={styles.cardInner}>
+                  <div className={styles.cardHeader}>
+                    <div className={styles.cardHeaderLeft}>
+                      <span className={`${styles.categoryPill} ${styles[cat.cls]}`}><CatIcon size={13} /> {cat.label}</span>
+                      <span className={styles.cardTimestamp}><Clock size={11} /> {timeAgo(report.created_at)}</span>
+                    </div>
+                    <div
+                      className={styles.evidenceThumbnail}
+                      onClick={() => report.photo_url ? setLightboxReport(report) : null}
+                      title={report.photo_url ? 'Click to view photo' : ''}
+                      style={report.photo_url ? { cursor: 'pointer' } : {}}
                     >
-                      📍 View on Map ({Number(report.gps_lat).toFixed(4)}, {Number(report.gps_lng).toFixed(4)})
-                    </a>
+                      <Camera size={22} />
+                      <span className={styles.evidenceLabel}>Photo</span>
+                    </div>
                   </div>
-                )}
+                  <div className={styles.cardBody}>
+                    <p className={styles.reportDescription}>{report.description || 'No description provided.'}</p>
+                    <div className={styles.detailChips}>
+                      <div className={styles.infoChip}>
+                        <MapPin size={15} />
+                        <span>{report.districts?.name || 'Unknown District'}{report.districts?.state ? `, ${report.districts.state}` : ''}</span>
+                      </div>
+                      {report.projects?.name && (
+                        <div className={styles.linkedProjectChip}>
+                          <AlertTriangle size={15} />
+                          <span>Linked to: <strong>{report.projects.name}</strong></span>
+                        </div>
+                      )}
+                      {report.gps_lat && report.gps_lng && (
+                        <a className={styles.gpsChip} href={`https://www.google.com/maps?q=${report.gps_lat},${report.gps_lng}`} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink size={13} /> View on Map ({Number(report.gps_lat).toFixed(4)}, {Number(report.gps_lng).toFixed(4)})
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  <div className={styles.cardFooter}>
+                    <span className={`${styles.sourceChip} ${report.type === 'citizen' ? styles.sourceCitizen : styles.sourceAuditor}`}>
+                      {report.type === 'citizen' ? <><User size={12} /> Citizen</> : <><Scan size={12} /> Auditor</>}
+                    </span>
+                    {updating === report.id ? (
+                      <Loader2 size={16} className="spin" style={{ color: 'var(--color-primary-500)' }} />
+                    ) : (
+                      <select className={`${styles.statusBadge} ${styles[STATUS_CLS[status]] || ''}`} value={status} onChange={(e) => handleStatusChange(report.id, e.target.value)}>
+                        <option value="received">Received</option>
+                        <option value="under_investigation">Investigating</option>
+                        <option value="resolved">Resolved</option>
+                      </select>
+                    )}
+                  </div>
+                </div>
               </div>
+            );
+          })}
+        </div>
+      )}
 
-              <div className={styles.reportFooter}>
-                <span style={{ fontSize: '11px', color: 'var(--color-slate-400)', fontFamily: 'monospace' }}>
-                  {report.type === 'citizen' ? '👤 Citizen' : '🔍 Auditor'}
+      {/* ── Photo Lightbox Modal ── */}
+      {lightboxReport && (() => {
+        const lbCat = getCat(lightboxReport.category);
+        return (
+          <div className={styles.lightboxOverlay} onClick={() => setLightboxReport(null)}>
+            <div className={styles.lightboxContent} onClick={(e) => e.stopPropagation()}>
+              <button className={styles.lightboxClose} onClick={() => setLightboxReport(null)}>
+                <X size={24} />
+              </button>
+              <img
+                src={lightboxReport.photo_url}
+                alt="Evidence photo"
+                className={styles.lightboxImg}
+              />
+              <div className={styles.lightboxInfo}>
+                <span className={styles.lightboxCategory}>
+                  {lbCat.label}
                 </span>
-                {updating === report.id ? (
-                  <Loader2 size={16} className="spin" style={{ color: 'var(--color-primary-500)' }} />
-                ) : (
-                  <select
-                    className={`${styles.statusSelect} ${styles[getStatusCssClass(report.status)]}`}
-                    value={report.status}
-                    onChange={(e) => handleStatusChange(report.id, e.target.value)}
-                  >
-                    <option value="received">Received</option>
-                    <option value="under_investigation">Investigating</option>
-                    <option value="resolved">Resolved</option>
-                  </select>
+                <span className={styles.lightboxMeta}>
+                  <MapPin size={13} /> {lightboxReport.districts?.name || 'Unknown'}
+                  {lightboxReport.districts?.state ? `, ${lightboxReport.districts.state}` : ''}
+                </span>
+                <span className={styles.lightboxMeta}>
+                  <Clock size={13} /> {timeAgo(lightboxReport.created_at)}
+                </span>
+                {lightboxReport.description && (
+                  <p className={styles.lightboxDesc}>{lightboxReport.description}</p>
                 )}
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, Suspense, lazy } from 'react';
-import { Eye, Search, ShieldCheck, AlertTriangle, IndianRupee, FolderOpen, Activity, MapPin, Hexagon, Loader2, Users, List, Map, Filter, X, ChevronDown } from 'lucide-react';
+import { Eye, Search, ShieldCheck, AlertTriangle, IndianRupee, FolderOpen, Activity, MapPin, Hexagon, Loader2, Users, List, Map, Filter, X, ChevronDown, Calendar, Building2, TrendingUp } from 'lucide-react';
 import { useSupabase, formatTimestamp } from '@/lib/hooks';
 import styles from './page.module.css';
 
@@ -13,6 +13,7 @@ export default function PublicPage() {
 
   // View toggle state
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
+  const [selectedProject, setSelectedProject] = useState(null);
 
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
@@ -301,7 +302,7 @@ export default function PublicPage() {
               {filteredProjects.map((project, i) => {
                 const contractValue = Number(project.contract_value_cr || 0);
                 return (
-                  <div key={project.id} className="public-project-card card" style={{ animationDelay: `${i * 100}ms` }}>
+                  <div key={project.id} className="public-project-card card" style={{ animationDelay: `${i * 100}ms`, cursor: 'pointer' }} onClick={() => setSelectedProject(project)}>
                     <div className="public-project-top">
                       <div className="public-project-category">{project.status}</div>
                       <h3 className="public-project-name">{project.name}</h3>
@@ -400,6 +401,105 @@ export default function PublicPage() {
         </div>
         <button className="btn btn-primary" style={{ background: 'white', color: 'var(--color-primary-900)', marginLeft: 'auto' }}>Learn More</button>
       </div>
+
+      {/* Project Detail Modal */}
+      {selectedProject && (
+        <div className={styles.modalOverlay} onClick={() => setSelectedProject(null)}>
+          <div className={styles.detailModal} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className={styles.detailHeader} style={{ '--risk-color': getRiskColor(selectedProject.risk_score) }}>
+              <div className={styles.detailHeaderContent}>
+                <div className={styles.detailHeaderTop}>
+                  <span className={`badge ${selectedProject.risk_score > 50 ? 'badge-flagged' : 'badge-verified'}`}>
+                    {selectedProject.status || 'Active'}
+                  </span>
+                  <button className={styles.modalClose} onClick={() => setSelectedProject(null)}>
+                    <X size={20} />
+                  </button>
+                </div>
+                <h2 className={styles.detailTitle}>{selectedProject.name}</h2>
+                <div className={styles.detailLocation}>
+                  <MapPin size={14} />
+                  <span>{selectedProject.districts?.name || 'India'}{selectedProject.districts?.state ? `, ${selectedProject.districts.state}` : ''}</span>
+                </div>
+              </div>
+              <div className={styles.detailRiskBadge}>
+                <svg className={styles.detailRiskRing} viewBox="0 0 96 96">
+                  <circle cx="48" cy="48" r="42" fill="rgba(0,0,0,0.25)" stroke="rgba(255,255,255,0.15)" strokeWidth="3" />
+                  <circle cx="48" cy="48" r="42" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="4"
+                    strokeDasharray={`${(selectedProject.risk_score / 100) * 264} 264`}
+                    strokeLinecap="round" transform="rotate(-90 48 48)" />
+                </svg>
+                <div className={styles.detailRiskCenter}>
+                  <span className={styles.detailRiskValue}>{selectedProject.risk_score || 0}</span>
+                  <span className={styles.detailRiskLabel}>Risk</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className={styles.detailBody}>
+              <div className={styles.detailSection}>
+                <h4 className={styles.detailSectionTitle}><IndianRupee size={15} /> Financial Overview</h4>
+                <div className={styles.detailGrid}>
+                  <div className={styles.detailStat}>
+                    <span className={styles.detailStatLabel}>Contract Value</span>
+                    <span className={styles.detailStatValue}>₹{Number(selectedProject.contract_value_cr || 0).toFixed(2)} Cr</span>
+                  </div>
+                  <div className={styles.detailStat}>
+                    <span className={styles.detailStatLabel}>Risk Score</span>
+                    <span className={styles.detailStatValue} style={{ color: getRiskColor(selectedProject.risk_score) }}>{selectedProject.risk_score || 0}/100</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.detailSection}>
+                <h4 className={styles.detailSectionTitle}><Building2 size={15} /> Project Details</h4>
+                <div className={styles.detailInfoList}>
+                  <div className={styles.detailInfoRow}>
+                    <span className={styles.detailInfoLabel}>Contractor</span>
+                    <span className={styles.detailInfoValue}>{selectedProject.contractor_name || '—'}</span>
+                  </div>
+                  <div className={styles.detailInfoRow}>
+                    <span className={styles.detailInfoLabel}>District</span>
+                    <span className={styles.detailInfoValue}>{selectedProject.districts?.name || '—'}</span>
+                  </div>
+                  <div className={styles.detailInfoRow}>
+                    <span className={styles.detailInfoLabel}>State</span>
+                    <span className={styles.detailInfoValue}>{selectedProject.districts?.state || '—'}</span>
+                  </div>
+                  <div className={styles.detailInfoRow}>
+                    <span className={styles.detailInfoLabel}>Status</span>
+                    <span className={styles.detailInfoValue}>{selectedProject.status || '—'}</span>
+                  </div>
+                  <div className={styles.detailInfoRow}>
+                    <span className={styles.detailInfoLabel}>Project ID</span>
+                    <span className={styles.detailInfoValue} style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{selectedProject.id}</span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedProject.risk_score > 50 && (
+                <div className={styles.detailSection}>
+                  <h4 className={styles.detailSectionTitle}><AlertTriangle size={15} style={{ color: 'var(--color-red-500)' }} /> Risk Indicators</h4>
+                  <div className={styles.riskFlag}>
+                    <AlertTriangle size={16} />
+                    <span>This project has an elevated risk score of <strong>{selectedProject.risk_score}/100</strong>. Enhanced monitoring and audit procedures are active.</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className={styles.detailFooter}>
+              <span style={{ fontSize: '12px', color: 'var(--color-slate-400)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Eye size={14} /> Public read-only view
+              </span>
+              <button className="btn btn-secondary btn-sm" onClick={() => setSelectedProject(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
