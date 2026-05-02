@@ -13,12 +13,9 @@ class ApiConfig {
   /// Base URL — auto-detects platform.
   /// Android emulator → 10.0.2.2, iOS simulator → localhost, physical device → LAN IP.
   static String get baseUrl {
-    // For physical device testing, replace this with your machine's LAN IP:
-    // return 'http://192.168.1.100:$port';
-    if (Platform.isAndroid) {
-      return 'http://10.0.2.2:$port';
-    }
-    return 'http://localhost:$port';
+    // We are using adb reverse tcp:3001 tcp:3001 to forward the port
+    // over the USB connection, circumventing firewall issues.
+    return 'http://127.0.0.1:$port';
   }
 
   // API Endpoints

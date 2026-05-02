@@ -99,8 +99,8 @@ class _CitizenHomePageState extends State<CitizenHomePage> {
                             text: 'A project in your district is flagged 🔴'),
                       _HeroReportCta(),
                       const SizedBox(height: 8),
-                      _SmartGovernanceCta(),
-                      const SizedBox(height: 12),
+                      // _SmartGovernanceCta(),
+                      // const SizedBox(height: 12),
 
                       // ── Active projects ──────────────────────────────────
                       SectionCard(
