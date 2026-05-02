@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { Filter, MapPin, Calendar, Loader2, AlertTriangle, ShieldCheck, Plus, X, Search } from 'lucide-react';
-import { useSupabase, timeAgo } from '@/lib/hooks';
+import { Filter, MapPin, Calendar, Loader2, AlertTriangle, ShieldCheck, Plus, X, Search, IndianRupee, Users, BarChart3, FileText, Clock, ExternalLink, TrendingUp, Shield, Activity } from 'lucide-react';
+import { useSupabase, timeAgo, formatTimestamp } from '@/lib/hooks';
 import styles from './page.module.css';
 
 const INITIAL_FORM = {
@@ -18,6 +18,7 @@ export default function ProjectsPage() {
   const { data: projects, loading, refetch } = useSupabase('/api/projects');
   const { data: districts } = useSupabase('/api/districts');
   const [showModal, setShowModal] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
@@ -66,6 +67,14 @@ export default function ProjectsPage() {
     if (score >= 70) return 'var(--color-red-600)';
     if (score >= 40) return 'var(--color-amber-500)';
     return 'var(--color-emerald-500)';
+  };
+
+  const getRiskLevel = (score) => {
+    if (score >= 80) return 'Critical';
+    if (score >= 60) return 'High';
+    if (score >= 40) return 'Medium';
+    if (score >= 20) return 'Low';
+    return 'Minimal';
   };
 
   if (loading) {
@@ -124,7 +133,12 @@ export default function ProjectsPage() {
             const benchmarkHigh = Number(project.benchmark_high_cr || 0);
             const anomalyPct = Number(project.bid_anomaly_pct || 0);
             return (
-              <div key={project.id} className={`card ${styles.projectCard}`} style={{ animationDelay: `${i * 80}ms` }}>
+              <div
+                key={project.id}
+                className={`card ${styles.projectCard}`}
+                style={{ animationDelay: `${i * 80}ms` }}
+                onClick={() => setSelectedProject(project)}
+              >
                 <div className={styles.cardTop}>
                   <div className={styles.cardHeader}>
                     <span className={`badge ${status.cls}`}><span className="badge-dot"></span>{status.text}</span>
@@ -180,7 +194,221 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {/* New Project Modal */}
+      {/* ═══════════════ PROJECT DETAIL MODAL ═══════════════ */}
+      {selectedProject && (() => {
+        const p = selectedProject;
+        const status = getStatusBadge(p.status);
+        const riskLevel = getRiskLevel(p.risk_score);
+        const riskColor = getRiskColor(p.risk_score);
+        const contractValue = Number(p.contract_value_cr || 0);
+        const benchmarkLow = Number(p.benchmark_low_cr || 0);
+        const benchmarkHigh = Number(p.benchmark_high_cr || 0);
+        const anomalyPct = Number(p.bid_anomaly_pct || 0);
+        const overBenchmark = benchmarkHigh > 0 ? ((contractValue - benchmarkHigh) / benchmarkHigh * 100).toFixed(1) : 0;
+
+        return (
+          <div className={styles.modalOverlay} onClick={() => setSelectedProject(null)}>
+            <div className={styles.detailModal} onClick={(e) => e.stopPropagation()}>
+              {/* Header with risk gradient */}
+              <div className={styles.detailHeader} style={{ '--risk-color': riskColor }}>
+                <div className={styles.detailHeaderContent}>
+                  <div className={styles.detailHeaderTop}>
+                    <span className={`badge ${status.cls}`} style={{ fontSize: '11px' }}>
+                      <span className="badge-dot"></span>{status.text}
+                    </span>
+                    <button className={styles.modalClose} onClick={() => setSelectedProject(null)} style={{ color: 'white' }}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <h2 className={styles.detailTitle}>{p.name}</h2>
+                  <div className={styles.detailLocation}>
+                    <MapPin size={14} />
+                    <span>{p.districts?.name || 'N/A'}, {p.districts?.state || ''}</span>
+                    <span className={styles.detailDivider}>•</span>
+                    <Calendar size={14} />
+                    <span>Phase {p.phase}</span>
+                    {p.phase2_frozen && (
+                      <>
+                        <span className={styles.detailDivider}>•</span>
+                        <Shield size={14} />
+                        <span>Phase 2 Frozen</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {/* Risk Gauge Overlay */}
+                <div className={styles.detailRiskBadge}>
+                  <svg viewBox="0 0 100 100" className={styles.detailRiskRing}>
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="6" />
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="white" strokeWidth="6"
+                      strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 42}`}
+                      strokeDashoffset={`${2 * Math.PI * 42 * (1 - (p.risk_score || 0) / 100)}`}
+                      transform="rotate(-90, 50, 50)" style={{ transition: 'stroke-dashoffset 1s ease-out' }} />
+                  </svg>
+                  <div className={styles.detailRiskCenter}>
+                    <span className={styles.detailRiskValue}>{p.risk_score}</span>
+                    <span className={styles.detailRiskLabel}>{riskLevel}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className={styles.detailBody}>
+                {/* Financial Overview Grid */}
+                <div className={styles.detailSection}>
+                  <h4 className={styles.detailSectionTitle}>
+                    <IndianRupee size={16} /> Financial Overview
+                  </h4>
+                  <div className={styles.detailGrid}>
+                    <div className={styles.detailStat}>
+                      <span className={styles.detailStatLabel}>Contract Value</span>
+                      <span className={styles.detailStatValue}>₹{contractValue} Cr</span>
+                    </div>
+                    <div className={styles.detailStat}>
+                      <span className={styles.detailStatLabel}>Benchmark Range</span>
+                      <span className={styles.detailStatValue}>₹{benchmarkLow}–{benchmarkHigh} Cr</span>
+                    </div>
+                    <div className={styles.detailStat}>
+                      <span className={styles.detailStatLabel}>Bids Received</span>
+                      <span className={styles.detailStatValue}>{p.bids_received || 0}</span>
+                    </div>
+                    <div className={styles.detailStat}>
+                      <span className={styles.detailStatLabel}>Over Benchmark</span>
+                      <span className={styles.detailStatValue} style={{ color: Number(overBenchmark) > 0 ? 'var(--color-red-600)' : 'var(--color-emerald-600)' }}>
+                        {Number(overBenchmark) > 0 ? '+' : ''}{overBenchmark}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bid Anomaly Analysis */}
+                <div className={styles.detailSection}>
+                  <h4 className={styles.detailSectionTitle}>
+                    <BarChart3 size={16} /> Bid Anomaly Analysis
+                  </h4>
+                  <div className={styles.anomalyBar}>
+                    <div className={styles.anomalyBarLabels}>
+                      <span>Anomaly Score</span>
+                      <span style={{ fontWeight: 700, color: anomalyPct > 50 ? 'var(--color-red-600)' : anomalyPct > 20 ? 'var(--color-amber-600)' : 'var(--color-emerald-600)' }}>
+                        {anomalyPct}%
+                      </span>
+                    </div>
+                    <div className={styles.barTrack} style={{ height: '10px', borderRadius: '5px' }}>
+                      <div className={styles.barFill} style={{
+                        width: `${Math.min(100, anomalyPct)}%`,
+                        height: '100%',
+                        borderRadius: '5px',
+                        background: anomalyPct > 50
+                          ? 'linear-gradient(90deg, var(--color-red-400), var(--color-red-600))'
+                          : anomalyPct > 20
+                            ? 'linear-gradient(90deg, var(--color-amber-400), var(--color-amber-600))'
+                            : 'linear-gradient(90deg, var(--color-emerald-400), var(--color-emerald-600))',
+                        transition: 'width 1s ease-out',
+                      }}></div>
+                    </div>
+                    <div className={styles.anomalyScale}>
+                      <span>0%</span>
+                      <span style={{ color: 'var(--color-emerald-500)' }}>Low</span>
+                      <span style={{ color: 'var(--color-amber-500)' }}>Medium</span>
+                      <span style={{ color: 'var(--color-red-500)' }}>High</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contractor & Project Info */}
+                <div className={styles.detailSection}>
+                  <h4 className={styles.detailSectionTitle}>
+                    <Users size={16} /> Contractor & Project Details
+                  </h4>
+                  <div className={styles.detailInfoList}>
+                    <div className={styles.detailInfoRow}>
+                      <span className={styles.detailInfoLabel}>Contractor</span>
+                      <span className={styles.detailInfoValue}>{p.contractor_name || '—'}</span>
+                    </div>
+                    <div className={styles.detailInfoRow}>
+                      <span className={styles.detailInfoLabel}>District</span>
+                      <span className={styles.detailInfoValue}>{p.districts?.name || '—'}, {p.districts?.state || ''}</span>
+                    </div>
+                    <div className={styles.detailInfoRow}>
+                      <span className={styles.detailInfoLabel}>Current Phase</span>
+                      <span className={styles.detailInfoValue}>Phase {p.phase}</span>
+                    </div>
+                    <div className={styles.detailInfoRow}>
+                      <span className={styles.detailInfoLabel}>Status</span>
+                      <span className={styles.detailInfoValue}>
+                        <span className={`badge ${status.cls}`} style={{ fontSize: '11px' }}>{status.text}</span>
+                      </span>
+                    </div>
+                    <div className={styles.detailInfoRow}>
+                      <span className={styles.detailInfoLabel}>Created</span>
+                      <span className={styles.detailInfoValue}>{formatTimestamp(p.created_at)}</span>
+                    </div>
+                    <div className={styles.detailInfoRow}>
+                      <span className={styles.detailInfoLabel}>Project ID</span>
+                      <span className={styles.detailInfoValue} style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--color-slate-400)' }}>
+                        {p.id}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Risk Indicators */}
+                {(p.status === 'flagged' || p.status === 'frozen' || p.risk_score >= 60) && (
+                  <div className={styles.detailSection}>
+                    <h4 className={styles.detailSectionTitle} style={{ color: 'var(--color-red-600)' }}>
+                      <AlertTriangle size={16} /> Risk Indicators
+                    </h4>
+                    <div className={styles.riskIndicators}>
+                      {anomalyPct > 50 && (
+                        <div className={styles.riskFlag}>
+                          <TrendingUp size={14} />
+                          <span>Bid is {anomalyPct}% above benchmark — potential overbilling</span>
+                        </div>
+                      )}
+                      {p.bids_received <= 2 && (
+                        <div className={styles.riskFlag}>
+                          <Users size={14} />
+                          <span>Only {p.bids_received} bid(s) received — limited competition</span>
+                        </div>
+                      )}
+                      {p.risk_score >= 70 && (
+                        <div className={styles.riskFlag}>
+                          <Activity size={14} />
+                          <span>AI risk score {p.risk_score}/100 — requires immediate review</span>
+                        </div>
+                      )}
+                      {p.phase2_frozen && (
+                        <div className={styles.riskFlag}>
+                          <Shield size={14} />
+                          <span>Phase 2 funding frozen pending investigation</span>
+                        </div>
+                      )}
+                      {contractValue > benchmarkHigh && benchmarkHigh > 0 && (
+                        <div className={styles.riskFlag}>
+                          <IndianRupee size={14} />
+                          <span>Contract ₹{contractValue} Cr exceeds benchmark ceiling of ₹{benchmarkHigh} Cr</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Actions */}
+              <div className={styles.detailFooter}>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSelectedProject(null)}>Close</button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="btn btn-secondary btn-sm"><FileText size={14} /> Audit Trail</button>
+                  <button className="btn btn-primary btn-sm"><ExternalLink size={14} /> Full Report</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ═══════════════ CREATE PROJECT MODAL ═══════════════ */}
       {showModal && (
         <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>

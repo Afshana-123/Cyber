@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Eye, Search, ShieldCheck, AlertTriangle, IndianRupee, FolderOpen, Activity, MapPin, ExternalLink, Hexagon } from 'lucide-react';
-import { fetchProjects, formatCurrency } from '@/lib/apiClient';
+import { fetchProjects } from '@/lib/apiClient';
 
 export default function PublicPage() {
   const [projects, setProjects] = useState([]);
@@ -80,7 +80,7 @@ export default function PublicPage() {
                 <div className="public-project-top">
                   <div className="public-project-category">{project.status}</div>
                   <h3 className="public-project-name">{project.name}</h3>
-                  <span className="public-project-loc"><MapPin size={13} /> {project.district_name || '—'}</span>
+                  <span className="public-project-loc"><MapPin size={13} /> {project.districts?.name || '—'}</span>
                 </div>
                 <div className="public-project-body">
                   <div className="public-project-budget">

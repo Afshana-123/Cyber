@@ -13,7 +13,15 @@
   font-family: var(--font-display);
   color: var(--color-slate-900);
 }
-.projectCard { cursor: pointer; overflow: hidden; }
+.projectCard {
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.projectCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
 .cardTop { padding: 20px 20px 12px; }
 .cardHeader {
   display: flex;
@@ -101,7 +109,7 @@
   color: var(--color-emerald-600);
 }
 
-/* ===== Modal ===== */
+/* ===== Modal Base ===== */
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -216,4 +224,308 @@
   border-top: 1px solid var(--color-slate-100);
   margin-top: 8px;
   padding-top: 20px;
+}
+
+
+/* ═══════════════════════════════════════════════
+   PROJECT DETAIL MODAL — Premium Design
+   ═══════════════════════════════════════════════ */
+
+.detailModal {
+  background: var(--bg-card);
+  border-radius: 16px;
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  width: 680px;
+  max-width: 94vw;
+  max-height: 92vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  animation: detailSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes detailSlideUp {
+  from { opacity: 0; transform: translateY(30px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Scrollbar styling */
+.detailModal::-webkit-scrollbar { width: 6px; }
+.detailModal::-webkit-scrollbar-track { background: transparent; }
+.detailModal::-webkit-scrollbar-thumb {
+  background: var(--color-slate-200);
+  border-radius: 3px;
+}
+
+/* Header with risk-colored gradient */
+.detailHeader {
+  position: relative;
+  padding: 28px 28px 24px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--risk-color) 90%, black 10%),
+    color-mix(in srgb, var(--risk-color) 60%, #1e293b 40%)
+  );
+  overflow: hidden;
+}
+.detailHeader::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -10%;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
+  border-radius: 50%;
+}
+.detailHeader::after {
+  content: '';
+  position: absolute;
+  bottom: -20%;
+  left: -5%;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(255,255,255,0.04), transparent 70%);
+  border-radius: 50%;
+}
+
+.detailHeaderContent {
+  position: relative;
+  z-index: 1;
+  max-width: calc(100% - 110px);
+}
+
+.detailHeaderTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  width: calc(100% + 110px);
+}
+
+.detailTitle {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: white;
+  line-height: 1.3;
+  margin-bottom: 10px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.detailLocation {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  flex-wrap: wrap;
+}
+
+.detailDivider {
+  opacity: 0.4;
+  margin: 0 2px;
+}
+
+/* Risk Badge - floating circle */
+.detailRiskBadge {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  width: 96px;
+  height: 96px;
+  z-index: 2;
+}
+
+.detailRiskRing {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+}
+
+.detailRiskCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.detailRiskValue {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  color: white;
+  line-height: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.detailRiskLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 2px;
+}
+
+/* Body */
+.detailBody {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.detailSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.detailSectionTitle {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-slate-800);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Financial Grid */
+.detailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.detailStat {
+  background: var(--color-slate-50);
+  border: 1px solid var(--color-slate-100);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.detailStat:hover {
+  border-color: var(--color-primary-200);
+  background: var(--color-primary-50);
+}
+
+.detailStatLabel {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-slate-500);
+}
+
+.detailStatValue {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-slate-900);
+}
+
+/* Anomaly Analysis */
+.anomalyBar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.anomalyBarLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--color-slate-600);
+}
+
+.anomalyScale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--color-slate-400);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-top: 2px;
+}
+
+/* Info List */
+.detailInfoList {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-slate-100);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.detailInfoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--color-slate-50);
+  transition: background 0.1s ease;
+}
+.detailInfoRow:last-child {
+  border-bottom: none;
+}
+.detailInfoRow:hover {
+  background: var(--color-slate-50);
+}
+
+.detailInfoLabel {
+  color: var(--color-slate-500);
+  font-weight: 500;
+}
+
+.detailInfoValue {
+  color: var(--color-slate-900);
+  font-weight: 600;
+  text-align: right;
+  max-width: 60%;
+  word-break: break-all;
+}
+
+/* Risk Indicators */
+.riskIndicators {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.riskFlag {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--color-red-50);
+  border: 1px solid var(--color-red-100);
+  border-left: 3px solid var(--color-red-500);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--color-red-700);
+  line-height: 1.5;
+}
+.riskFlag svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Footer */
+.detailFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 28px;
+  border-top: 1px solid var(--color-slate-100);
+  background: var(--color-slate-50);
+  border-radius: 0 0 16px 16px;
 }

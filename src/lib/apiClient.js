@@ -1,13 +1,11 @@
 /**
  * TRACE Web — API Client
- * Centralized fetch wrapper for the Express backend.
+ * Centralized fetch wrapper for Next.js API routes.
  */
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 async function apiFetch(path, options = {}) {
   try {
-    const resp = await fetch(`${API_BASE}${path}`, {
+    const resp = await fetch(path, {
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       ...options,
     });
@@ -29,7 +27,7 @@ export async function fetchDistricts() {
 }
 
 export async function fetchAlerts() {
-  return apiFetch('/api/alerts');
+  return apiFetch('/api/fraud');
 }
 
 export async function fetchProjects(districtId) {
@@ -37,46 +35,42 @@ export async function fetchProjects(districtId) {
   return apiFetch(`/api/projects${qs}`);
 }
 
-export async function fetchContract(id) {
-  return apiFetch(`/api/contract/${id}`);
+export async function fetchTransactions() {
+  return apiFetch('/api/transactions');
 }
 
-export async function fetchSchemes(districtId) {
-  return apiFetch(`/api/schemes/${districtId}`);
+export async function fetchBeneficiaries() {
+  return apiFetch('/api/beneficiaries');
 }
 
-export async function fetchRiskScore(id, type = 'project') {
-  return apiFetch(`/api/risk-score/${id}?type=${type}`);
+export async function fetchSchemes() {
+  return apiFetch('/api/schemes');
 }
 
-export async function fetchPayments(contractId) {
-  return apiFetch(`/api/payments/${contractId}`);
-}
-
-export async function fetchInspections() {
-  return apiFetch('/api/inspections');
+export async function fetchDashboard() {
+  return apiFetch('/api/dashboard');
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
 
 export function formatCurrency(amount) {
-  if (amount >= 10000000000) {
-    return `₹${(amount / 10000000000).toFixed(0)} Cr`;
-  } else if (amount >= 10000000) {
-    return `₹${(amount / 10000000).toFixed(1)} Cr`;
-  } else if (amount >= 100000) {
-    return `₹${(amount / 100000).toFixed(1)} L`;
+  const num = Number(amount);
+  if (num >= 10000000) {
+    return `₹${(num / 10000000).toFixed(1)} Cr`;
+  } else if (num >= 100000) {
+    return `₹${(num / 100000).toFixed(1)} L`;
   }
-  return `₹${amount.toLocaleString('en-IN')}`;
+  return `₹${num.toLocaleString('en-IN')}`;
 }
 
 export function formatLargeCurrency(amount) {
-  if (amount >= 10000000000000) {
-    return `₹${(amount / 10000000000000).toFixed(0)} L Cr`;
-  } else if (amount >= 1000000000000) {
-    return `₹${(amount / 10000000000).toLocaleString('en-IN')} Cr`;
-  } else if (amount >= 10000000000) {
-    return `₹${(amount / 10000000000).toFixed(0)} Cr`;
+  const num = Number(amount);
+  if (num >= 10000000000000) {
+    return `₹${(num / 10000000000000).toFixed(0)} L Cr`;
+  } else if (num >= 10000000000) {
+    return `₹${(num / 10000000).toLocaleString('en-IN')} Cr`;
+  } else if (num >= 10000000) {
+    return `₹${(num / 10000000).toFixed(0)} Cr`;
   }
-  return formatCurrency(amount);
+  return formatCurrency(num);
 }

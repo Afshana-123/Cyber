@@ -6,14 +6,14 @@ import RiskGauge from '@/components/RiskGauge';
 import FundFlowDiagram from '@/components/FundFlowDiagram';
 import FraudAlertPanel from '@/components/FraudAlertPanel';
 import LiveTransactions from '@/components/LiveTransactions';
-import { fetchAlerts, fetchProjects, fetchDistricts } from '@/lib/apiClient';
-import { transactions } from '@/data/mockData';
+import { fetchAlerts, fetchProjects, fetchDistricts, fetchTransactions } from '@/lib/apiClient';
 import styles from './page.module.css';
 
 export default function DashboardPage() {
   const [alerts, setAlerts] = useState([]);
   const [projects, setProjects] = useState([]);
   const [districts, setDistricts] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,10 +21,12 @@ export default function DashboardPage() {
       fetchAlerts().catch(() => []),
       fetchProjects().catch(() => []),
       fetchDistricts().catch(() => []),
-    ]).then(([a, p, d]) => {
+      fetchTransactions().catch(() => []),
+    ]).then(([a, p, d, t]) => {
       setAlerts(a);
       setProjects(p);
       setDistricts(d);
+      setTransactions(t);
       setLoading(false);
     });
   }, []);
@@ -33,25 +35,16 @@ export default function DashboardPage() {
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
   const dateStr = now.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
-  const totalMissing = districts.reduce((s, d) => s + (d.missing_crore || 0), 0);
+  // Compute KPIs from real project + alert data
+  const flaggedProjects = projects.filter(p => p.status === 'flagged' || p.status === 'frozen');
+  const totalMissing = flaggedProjects.reduce((s, p) => s + Number(p.contract_value_cr || 0), 0);
   const flaggedCount = alerts.length;
-  const avgRisk = districts.length > 0
-    ? Math.round(districts.reduce((s, d) => s + (d.risk_score || 0), 0) / districts.length)
+  const avgRisk = projects.length > 0
+    ? Math.round(projects.reduce((s, p) => s + (p.risk_score || 0), 0) / projects.length)
     : 0;
 
-  // Map backend alerts to the shape FraudAlertPanel expects
-  const mappedAlerts = alerts.slice(0, 4).map(a => ({
-    id: a.id,
-    projectId: a.entity_id,
-    projectName: a.title,
-    riskScore: a.risk_score,
-    severity: a.risk_score >= 75 ? 'critical' : a.risk_score >= 50 ? 'high' : a.risk_score >= 30 ? 'medium' : 'low',
-    reason: a.type?.replace(/_/g, ' '),
-    detail: a.description,
-    flaggedBy: 'AI Engine',
-    timeAgo: new Date(a.created_at).toLocaleDateString('en-IN'),
-    signals: [],
-  }));
+  // Pass alerts directly — FraudAlertPanel uses raw Supabase field names
+  const mappedAlerts = alerts;
 
   return (
     <div className="page-content">
