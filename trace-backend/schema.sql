@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS reports (
   checklist       JSONB DEFAULT '{}',
   submitted_by    VARCHAR NOT NULL DEFAULT 'citizen',
   immutable       BOOLEAN DEFAULT TRUE,
+  status          VARCHAR DEFAULT 'received' CHECK (status IN ('received', 'under_investigation', 'resolved')),
   created_at      TIMESTAMP DEFAULT NOW()
 );
 
@@ -163,9 +164,10 @@ CREATE POLICY "anon_read_payments"      ON payments      FOR SELECT USING (true)
 CREATE POLICY "anon_insert_reports"      ON reports      FOR INSERT WITH CHECK (true);
 CREATE POLICY "anon_insert_transactions" ON transactions FOR INSERT WITH CHECK (true);
 
--- Allow anon update on projects/payments (for payment freeze side-effects)
+-- Allow anon update on projects/payments/reports (for status changes)
 CREATE POLICY "anon_update_projects"  ON projects  FOR UPDATE USING (true);
 CREATE POLICY "anon_update_payments"  ON payments  FOR UPDATE USING (true);
+CREATE POLICY "anon_update_reports"   ON reports   FOR UPDATE USING (true);
 
 -- ─── SEED DATA ───────────────────────────────────────────────
 
