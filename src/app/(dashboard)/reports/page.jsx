@@ -1,30 +1,39 @@
 'use client';
 import { useState } from 'react';
-import { MessageSquareWarning, MapPin, Clock, Camera, Loader2, AlertTriangle, CheckCircle, Search, Eye, Filter } from 'lucide-react';
+import { MessageSquareWarning, MapPin, Clock, Camera, Loader2, AlertTriangle, CheckCircle, Search, Eye } from 'lucide-react';
 import { useSupabase, timeAgo } from '@/lib/hooks';
 import styles from './page.module.css';
 
-const STATUS_LABELS = {
-  received: 'Received',
-  under_investigation: 'Under Investigation',
-  resolved: 'Resolved',
+const STATUS_MAP = {
+  received: { label: 'Received', cssClass: 'statusReceived' },
+  under_investigation: { label: 'Under Investigation', cssClass: 'statusUnderInvestigation' },
+  resolved: { label: 'Resolved', cssClass: 'statusResolved' },
 };
 
 export default function CitizenReportsPage() {
   const { data: reports, loading, refetch } = useSupabase('/api/reports');
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [updating, setUpdating] = useState(null); // report id being updated
+  const [updating, setUpdating] = useState(null);
+  // Local override for optimistic UI — tracks in-flight status changes
+  const [localStatuses, setLocalStatuses] = useState({});
 
   const handleStatusChange = async (reportId, newStatus) => {
     setUpdating(reportId);
+    // Optimistic: update locally immediately so KPIs refresh
+    setLocalStatuses(prev => ({ ...prev, [reportId]: newStatus }));
     try {
       const res = await fetch('/api/reports', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: reportId, status: newStatus }),
       });
-      if (!res.ok) throw new Error('Failed to update');
+      if (!res.ok) {
+        // Rollback on failure
+        setLocalStatuses(prev => { const next = { ...prev }; delete next[reportId]; return next; });
+        throw new Error('Failed to update');
+      }
+      // Silently refresh data from server
       refetch();
     } catch (err) {
       console.error(err);
@@ -41,7 +50,13 @@ export default function CitizenReportsPage() {
     );
   }
 
-  const reportList = (reports || [])
+  // Merge server data with optimistic local overrides
+  const enrichedReports = (reports || []).map(r => ({
+    ...r,
+    status: localStatuses[r.id] || r.status || 'received',
+  }));
+
+  const reportList = enrichedReports
     .filter(r => {
       if (filterStatus !== 'all' && r.status !== filterStatus) return false;
       if (search) {
@@ -55,14 +70,14 @@ export default function CitizenReportsPage() {
       return true;
     });
 
-  const totalReports = (reports || []).length;
-  const receivedCount = (reports || []).filter(r => r.status === 'received').length;
-  const investigatingCount = (reports || []).filter(r => r.status === 'under_investigation').length;
-  const resolvedCount = (reports || []).filter(r => r.status === 'resolved').length;
+  const totalReports = enrichedReports.length;
+  const receivedCount = enrichedReports.filter(r => r.status === 'received').length;
+  const investigatingCount = enrichedReports.filter(r => r.status === 'under_investigation').length;
+  const resolvedCount = enrichedReports.filter(r => r.status === 'resolved').length;
 
   const getCategoryIcon = (cat) => {
     switch (cat) {
-      case 'road_quality': return '🛣️';
+      case 'road_quality': case 'Road Quality': return '🛣️';
       case 'ghost_project': return '👻';
       case 'suspicious_activity': return '🔍';
       case 'inspection': return '📋';
@@ -72,6 +87,10 @@ export default function CitizenReportsPage() {
 
   const getCategoryLabel = (cat) => {
     return (cat || 'other').replace(/_/g, ' ');
+  };
+
+  const getStatusCssClass = (status) => {
+    return STATUS_MAP[status]?.cssClass || 'statusReceived';
   };
 
   return (
@@ -165,77 +184,74 @@ export default function CitizenReportsPage() {
         </div>
       ) : (
         <div className="grid-3">
-          {reportList.map((report, i) => {
-            const statusClass = report.status || 'received';
-            return (
-              <div key={report.id} className={`card ${styles.reportCard}`} style={{ animationDelay: `${i * 60}ms` }}>
-                <div className={styles.reportHeader}>
-                  <div className={styles.reportMeta}>
-                    <span className={styles.reportCategory}>
-                      {getCategoryIcon(report.category)} {getCategoryLabel(report.category)}
-                    </span>
-                    <span className={styles.reportTime}>
-                      <Clock size={11} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                      {timeAgo(report.created_at)}
-                    </span>
-                  </div>
-                  <div className={styles.photoThumb}>
-                    <Camera size={20} />
-                  </div>
-                </div>
-
-                <div className={styles.reportBody}>
-                  <p className={styles.reportDescription}>
-                    {report.description || 'No description provided.'}
-                  </p>
-
-                  <div className={styles.reportInfoRow}>
-                    <MapPin size={14} />
-                    <span>{report.districts?.name || 'Unknown District'}{report.districts?.state ? `, ${report.districts.state}` : ''}</span>
-                  </div>
-
-                  {report.projects?.name && (
-                    <div className={styles.reportInfoRow}>
-                      <AlertTriangle size={14} style={{ color: 'var(--color-amber-500)' }} />
-                      <span>Linked to: <strong>{report.projects.name}</strong></span>
-                    </div>
-                  )}
-
-                  {report.gps_lat && report.gps_lng && (
-                    <div className={styles.reportInfoRow}>
-                      <a
-                        className={styles.gpsLink}
-                        href={`https://www.google.com/maps?q=${report.gps_lat},${report.gps_lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        📍 View on Map ({Number(report.gps_lat).toFixed(4)}, {Number(report.gps_lng).toFixed(4)})
-                      </a>
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.reportFooter}>
-                  <span style={{ fontSize: '11px', color: 'var(--color-slate-400)', fontFamily: 'monospace' }}>
-                    {report.type === 'citizen' ? '👤 Citizen' : '🔍 Auditor'}
+          {reportList.map((report, i) => (
+            <div key={report.id} className={`card ${styles.reportCard}`} style={{ animationDelay: `${i * 60}ms` }}>
+              <div className={styles.reportHeader}>
+                <div className={styles.reportMeta}>
+                  <span className={styles.reportCategory}>
+                    {getCategoryIcon(report.category)} {getCategoryLabel(report.category)}
                   </span>
-                  {updating === report.id ? (
-                    <Loader2 size={16} className="spin" style={{ color: 'var(--color-primary-500)' }} />
-                  ) : (
-                    <select
-                      className={`${styles.statusSelect} ${styles[statusClass]}`}
-                      value={report.status || 'received'}
-                      onChange={(e) => handleStatusChange(report.id, e.target.value)}
-                    >
-                      <option value="received">Received</option>
-                      <option value="under_investigation">Investigating</option>
-                      <option value="resolved">Resolved</option>
-                    </select>
-                  )}
+                  <span className={styles.reportTime}>
+                    <Clock size={11} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                    {timeAgo(report.created_at)}
+                  </span>
+                </div>
+                <div className={styles.photoThumb}>
+                  <Camera size={20} />
                 </div>
               </div>
-            );
-          })}
+
+              <div className={styles.reportBody}>
+                <p className={styles.reportDescription}>
+                  {report.description || 'No description provided.'}
+                </p>
+
+                <div className={styles.reportInfoRow}>
+                  <MapPin size={14} />
+                  <span>{report.districts?.name || 'Unknown District'}{report.districts?.state ? `, ${report.districts.state}` : ''}</span>
+                </div>
+
+                {report.projects?.name && (
+                  <div className={styles.reportInfoRow}>
+                    <AlertTriangle size={14} style={{ color: 'var(--color-amber-500)' }} />
+                    <span>Linked to: <strong>{report.projects.name}</strong></span>
+                  </div>
+                )}
+
+                {report.gps_lat && report.gps_lng && (
+                  <div className={styles.reportInfoRow}>
+                    <a
+                      className={styles.gpsLink}
+                      href={`https://www.google.com/maps?q=${report.gps_lat},${report.gps_lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      📍 View on Map ({Number(report.gps_lat).toFixed(4)}, {Number(report.gps_lng).toFixed(4)})
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.reportFooter}>
+                <span style={{ fontSize: '11px', color: 'var(--color-slate-400)', fontFamily: 'monospace' }}>
+                  {report.type === 'citizen' ? '👤 Citizen' : '🔍 Auditor'}
+                </span>
+                {updating === report.id ? (
+                  <Loader2 size={16} className="spin" style={{ color: 'var(--color-primary-500)' }} />
+                ) : (
+                  <select
+                    className={`${styles.statusSelect} ${styles[getStatusCssClass(report.status)]}`}
+                    value={report.status}
+                    onChange={(e) => handleStatusChange(report.id, e.target.value)}
+                  >
+                    <option value="received">Received</option>
+                    <option value="under_investigation">Investigating</option>
+                    <option value="resolved">Resolved</option>
+                  </select>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

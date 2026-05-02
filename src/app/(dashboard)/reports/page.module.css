@@ -1,6 +1,7 @@
 .reportCard {
   animation: cardSlideIn 0.4s ease-out both;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
+  padding: 20px;
 }
 
 .reportCard:hover {
@@ -91,35 +92,23 @@
   box-shadow: 0 0 0 3px var(--color-primary-100);
 }
 
-.statusSelect.received {
+/* CSS Modules: use camelCase class names to avoid mangling issues */
+.statusReceived {
   color: var(--color-amber-700);
   border-color: var(--color-amber-300);
   background: var(--color-amber-50);
 }
 
-.statusSelect.under_investigation {
+.statusUnderInvestigation {
   color: var(--color-primary-700);
   border-color: var(--color-primary-300);
   background: var(--color-primary-50);
 }
 
-.statusSelect.resolved {
+.statusResolved {
   color: var(--color-emerald-700);
   border-color: var(--color-emerald-300);
   background: var(--color-emerald-50);
-}
-
-.kpiRow {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-@media (max-width: 768px) {
-  .kpiRow {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 .photoThumb {
