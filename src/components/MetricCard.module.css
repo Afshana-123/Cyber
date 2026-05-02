@@ -9,7 +9,7 @@
   animation: metricEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   position: relative;
   overflow: hidden;
-  cursor: default;
+  cursor: pointer;
 }
 
 @keyframes metricEnter {

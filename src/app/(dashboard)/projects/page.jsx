@@ -1,10 +1,56 @@
 'use client';
-import { Filter, MapPin, Calendar, Loader2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { Filter, MapPin, Calendar, Loader2, AlertTriangle, ShieldCheck, Plus, X } from 'lucide-react';
 import { useSupabase, timeAgo } from '@/lib/hooks';
 import styles from './page.module.css';
 
+const INITIAL_FORM = {
+  name: '',
+  district_id: '',
+  contractor_name: '',
+  contract_value_cr: '',
+  benchmark_low_cr: '',
+  benchmark_high_cr: '',
+  bids_received: '',
+};
+
 export default function ProjectsPage() {
-  const { data: projects, loading } = useSupabase('/api/projects');
+  const { data: projects, loading, refetch } = useSupabase('/api/projects');
+  const { data: districts } = useSupabase('/api/districts');
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState(INITIAL_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState(null);
+
+  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.district_id) {
+      setFormError('Project name and district are required.');
+      return;
+    }
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to create project');
+      }
+      setForm(INITIAL_FORM);
+      setShowModal(false);
+      refetch();
+    } catch (err) {
+      setFormError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const getStatusBadge = (status) => {
     const map = {
@@ -43,6 +89,7 @@ export default function ProjectsPage() {
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-secondary btn-sm"><Filter size={16} /> Filter</button>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowModal(true)}><Plus size={16} /> New Project</button>
         </div>
       </div>
 
@@ -117,6 +164,70 @@ export default function ProjectsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* New Project Modal */}
+      {showModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>Create New Project</h2>
+              <button className={styles.modalClose} onClick={() => setShowModal(false)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleSubmit} className={styles.modalBody}>
+              {formError && <div className={styles.formError}>{formError}</div>}
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Project Name *</label>
+                <input className={styles.formInput} name="name" value={form.name} onChange={handleChange} placeholder="e.g. NH-44 Bridge Construction" required />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>District *</label>
+                <select className={styles.formInput} name="district_id" value={form.district_id} onChange={handleChange} required>
+                  <option value="">Select district...</option>
+                  {(districts || []).map(d => (
+                    <option key={d.id} value={d.id}>{d.name}, {d.state}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Contractor Name</label>
+                <input className={styles.formInput} name="contractor_name" value={form.contractor_name} onChange={handleChange} placeholder="e.g. ABC Infra Pvt Ltd" />
+              </div>
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Contract Value (Cr)</label>
+                  <input className={styles.formInput} name="contract_value_cr" type="number" step="0.01" min="0" value={form.contract_value_cr} onChange={handleChange} placeholder="0.00" />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Bids Received</label>
+                  <input className={styles.formInput} name="bids_received" type="number" min="0" value={form.bids_received} onChange={handleChange} placeholder="0" />
+                </div>
+              </div>
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Benchmark Low (Cr)</label>
+                  <input className={styles.formInput} name="benchmark_low_cr" type="number" step="0.01" min="0" value={form.benchmark_low_cr} onChange={handleChange} placeholder="0.00" />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Benchmark High (Cr)</label>
+                  <input className={styles.formInput} name="benchmark_high_cr" type="number" step="0.01" min="0" value={form.benchmark_high_cr} onChange={handleChange} placeholder="0.00" />
+                </div>
+              </div>
+
+              <div className={styles.modalFooter}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>
+                  {submitting ? <><Loader2 size={16} className="spin" /> Creating...</> : <><Plus size={16} /> Create Project</>}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

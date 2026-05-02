@@ -218,7 +218,7 @@ export default function AuditorPage() {
                   <tr key={bene.id} style={{ background: 'var(--color-amber-50)' }}>
                     <td style={{ fontWeight: 500, fontSize: '13px' }}>{bene.schemes?.name || '—'}</td>
                     <td className="amount-cell">₹{bene.amount_cr} Cr</td>
-                    <td style={{ fontSize: '12px', color: 'var(--color-slate-600)' }}>{bene.ghost_signals}</td>
+                    <td style={{ fontSize: '12px', color: 'var(--color-slate-600)' }}>{bene.ghost_signals ? Object.entries(bene.ghost_signals).map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`).join(', ') : '—'}</td>
                   </tr>
                 ))}
               </tbody>

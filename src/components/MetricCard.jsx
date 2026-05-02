@@ -1,8 +1,9 @@
 'use client';
+import Link from 'next/link';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import styles from './MetricCard.module.css';
 
-export default function MetricCard({ icon: Icon, label, value, change, variant = 'neutral', delay = 0 }) {
+export default function MetricCard({ icon: Icon, label, value, change, variant = 'neutral', delay = 0, href }) {
   const isPositive = change >= 0;
 
   const borderClass = variant === 'success' ? styles.borderSuccess
@@ -17,8 +18,11 @@ export default function MetricCard({ icon: Icon, label, value, change, variant =
     : variant === 'warning' ? styles.iconWarning
     : variant === 'danger' ? styles.iconDanger : styles.iconNeutral;
 
+  const Wrapper = href ? Link : 'div';
+  const wrapperProps = href ? { href, style: { textDecoration: 'none', color: 'inherit', animationDelay: `${delay}ms` } } : { style: { animationDelay: `${delay}ms` } };
+
   return (
-    <div className={`${styles.metricCard} ${borderClass}`} style={{ animationDelay: `${delay}ms` }}>
+    <Wrapper className={`${styles.metricCard} ${borderClass}`} {...wrapperProps}>
       {bgClass && <div className={`${styles.bgOverlay} ${bgClass}`}></div>}
       <div className={styles.metricTop}>
         <div className={`${styles.metricIconWrap} ${iconClass}`}>
@@ -45,6 +49,6 @@ export default function MetricCard({ icon: Icon, label, value, change, variant =
           />
         </svg>
       </div>
-    </div>
+    </Wrapper>
   );
 }

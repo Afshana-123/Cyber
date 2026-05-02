@@ -65,6 +65,7 @@ export default function DashboardPage() {
           change={0}
           variant="neutral"
           delay={0}
+          href="/transactions"
         />
         <MetricCard
           icon={FolderOpen}
@@ -73,6 +74,7 @@ export default function DashboardPage() {
           change={0}
           variant="success"
           delay={100}
+          href="/projects"
         />
         <MetricCard
           icon={AlertTriangle}
@@ -81,6 +83,7 @@ export default function DashboardPage() {
           change={0}
           variant="danger"
           delay={200}
+          href="/auditor"
         />
         <MetricCard
           icon={Activity}
@@ -89,6 +92,7 @@ export default function DashboardPage() {
           change={0}
           variant={stats?.avgRisk > 50 ? 'danger' : 'success'}
           delay={300}
+          href="/auditor"
         />
       </div>
 
