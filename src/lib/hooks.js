@@ -10,9 +10,9 @@ export function useSupabase(url, options = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isRefetch = false) => {
     try {
-      setLoading(true);
+      if (!isRefetch) setLoading(true);
       setError(null);
       const res = await fetch(url);
       if (!res.ok) {
@@ -25,15 +25,17 @@ export function useSupabase(url, options = {}) {
       setError(err.message);
       console.error(`[useSupabase] ${url}:`, err);
     } finally {
-      setLoading(false);
+      if (!isRefetch) setLoading(false);
     }
   }, [url]);
 
   useEffect(() => {
-    fetchData();
+    fetchData(false);
   }, [fetchData]);
 
-  return { data, loading, error, refetch: fetchData };
+  const refetch = useCallback(() => fetchData(true), [fetchData]);
+
+  return { data, loading, error, refetch };
 }
 
 /**
