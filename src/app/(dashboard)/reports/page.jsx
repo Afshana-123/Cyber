@@ -1,20 +1,27 @@
 'use client';
 import { useState } from 'react';
-import { MessageSquareWarning, MapPin, Clock, Camera, Loader2, AlertTriangle, CheckCircle, Search, Eye, Filter } from 'lucide-react';
+import { MessageSquareWarning, MapPin, Clock, Camera, Loader2, AlertTriangle, CheckCircle, Search, Eye, Filter, ExternalLink, Shield, FileWarning, Construction, ClipboardCheck, FileText } from 'lucide-react';
 import { useSupabase, timeAgo } from '@/lib/hooks';
 import styles from './page.module.css';
 
-const STATUS_LABELS = {
-  received: 'Received',
-  under_investigation: 'Under Investigation',
-  resolved: 'Resolved',
+const CATEGORY_CONFIG = {
+  road_quality: { icon: Construction, label: 'Road Quality', emoji: '🛣️' },
+  ghost_project: { icon: FileWarning, label: 'Ghost Project', emoji: '👻' },
+  suspicious_activity: { icon: Shield, label: 'Suspicious Activity', emoji: '🔍' },
+  inspection: { icon: ClipboardCheck, label: 'Inspection', emoji: '📋' },
+};
+
+const STATUS_CONFIG = {
+  received: { label: 'Received', cardClass: 'statusReceived' },
+  under_investigation: { label: 'Investigating', cardClass: 'statusInvestigating' },
+  resolved: { label: 'Resolved', cardClass: 'statusResolved' },
 };
 
 export default function CitizenReportsPage() {
   const { data: reports, loading, refetch } = useSupabase('/api/reports');
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [updating, setUpdating] = useState(null); // report id being updated
+  const [updating, setUpdating] = useState(null);
 
   const handleStatusChange = async (reportId, newStatus) => {
     setUpdating(reportId);
@@ -60,19 +67,7 @@ export default function CitizenReportsPage() {
   const investigatingCount = (reports || []).filter(r => r.status === 'under_investigation').length;
   const resolvedCount = (reports || []).filter(r => r.status === 'resolved').length;
 
-  const getCategoryIcon = (cat) => {
-    switch (cat) {
-      case 'road_quality': return '🛣️';
-      case 'ghost_project': return '👻';
-      case 'suspicious_activity': return '🔍';
-      case 'inspection': return '📋';
-      default: return '📝';
-    }
-  };
-
-  const getCategoryLabel = (cat) => {
-    return (cat || 'other').replace(/_/g, ' ');
-  };
+  const getCat = (cat) => CATEGORY_CONFIG[cat] || { icon: FileText, label: (cat || 'other').replace(/_/g, ' '), emoji: '📝' };
 
   return (
     <div className="page-content">
@@ -82,14 +77,14 @@ export default function CitizenReportsPage() {
             <MessageSquareWarning size={24} style={{ color: 'var(--color-primary-500)' }} />
             Citizen Reports
           </h1>
-          <p className="page-subtitle">Reports submitted anonymously by citizens from the TRACE mobile app.</p>
+          <p className="page-subtitle">Anonymous reports submitted by citizens from the TRACE mobile app.</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <select
             className="btn btn-secondary btn-sm"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ cursor: 'pointer' }}
+            style={{ cursor: 'pointer', fontFamily: 'var(--font-body)' }}
           >
             <option value="all">All Status</option>
             <option value="received">Received</option>
@@ -141,8 +136,8 @@ export default function CitizenReportsPage() {
 
       {/* Search */}
       <div className="section-gap">
-        <div className="card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Search size={18} style={{ color: 'var(--color-slate-400)' }} />
+        <div className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Search size={18} style={{ color: 'var(--color-slate-400)', flexShrink: 0 }} />
           <input
             type="text"
             placeholder="Search by category, description, or district..."
@@ -151,31 +146,54 @@ export default function CitizenReportsPage() {
             style={{
               border: 'none', outline: 'none', width: '100%', fontSize: '14px',
               background: 'transparent', color: 'var(--color-slate-700)',
+              fontFamily: 'var(--font-body)',
             }}
           />
+          {search && (
+            <span style={{ fontSize: '12px', color: 'var(--color-slate-400)', whiteSpace: 'nowrap' }}>
+              {reportList.length} result{reportList.length !== 1 ? 's' : ''}
+            </span>
+          )}
         </div>
       </div>
 
       {/* Reports List */}
       {reportList.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--color-slate-400)' }}>
-          <MessageSquareWarning size={48} style={{ marginBottom: '12px', opacity: 0.5 }} />
-          <p style={{ fontSize: '16px' }}>No citizen reports found.</p>
-          <p style={{ fontSize: '13px' }}>Reports submitted from the TRACE mobile app will appear here.</p>
+        <div className="card">
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>
+              <MessageSquareWarning size={32} />
+            </div>
+            <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-slate-700)', marginBottom: '6px' }}>
+              No citizen reports found
+            </p>
+            <p style={{ fontSize: '13px', color: 'var(--color-slate-400)' }}>
+              Reports submitted from the TRACE mobile app will appear here.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="grid-3">
           {reportList.map((report, i) => {
             const statusClass = report.status || 'received';
+            const statusConf = STATUS_CONFIG[statusClass] || STATUS_CONFIG.received;
+            const cat = getCat(report.category);
+            const CatIcon = cat.icon;
+
             return (
-              <div key={report.id} className={`card ${styles.reportCard}`} style={{ animationDelay: `${i * 60}ms` }}>
+              <div
+                key={report.id}
+                className={`card ${styles.reportCard} ${styles[statusConf.cardClass]}`}
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
                 <div className={styles.reportHeader}>
                   <div className={styles.reportMeta}>
-                    <span className={styles.reportCategory}>
-                      {getCategoryIcon(report.category)} {getCategoryLabel(report.category)}
+                    <span className={`${styles.categoryBadge} ${styles[report.category] || styles.other}`}>
+                      <CatIcon size={13} />
+                      {cat.label}
                     </span>
                     <span className={styles.reportTime}>
-                      <Clock size={11} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                      <Clock size={11} />
                       {timeAgo(report.created_at)}
                     </span>
                   </div>
@@ -195,28 +213,27 @@ export default function CitizenReportsPage() {
                   </div>
 
                   {report.projects?.name && (
-                    <div className={styles.reportInfoRow}>
-                      <AlertTriangle size={14} style={{ color: 'var(--color-amber-500)' }} />
-                      <span>Linked to: <strong>{report.projects.name}</strong></span>
+                    <div className={styles.linkedProject}>
+                      <AlertTriangle size={14} />
+                      <span>Linked: <strong>{report.projects.name}</strong></span>
                     </div>
                   )}
 
                   {report.gps_lat && report.gps_lng && (
-                    <div className={styles.reportInfoRow}>
-                      <a
-                        className={styles.gpsLink}
-                        href={`https://www.google.com/maps?q=${report.gps_lat},${report.gps_lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        📍 View on Map ({Number(report.gps_lat).toFixed(4)}, {Number(report.gps_lng).toFixed(4)})
-                      </a>
-                    </div>
+                    <a
+                      className={styles.gpsLink}
+                      href={`https://www.google.com/maps?q=${report.gps_lat},${report.gps_lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink size={12} />
+                      View on Map ({Number(report.gps_lat).toFixed(4)}, {Number(report.gps_lng).toFixed(4)})
+                    </a>
                   )}
                 </div>
 
                 <div className={styles.reportFooter}>
-                  <span style={{ fontSize: '11px', color: 'var(--color-slate-400)', fontFamily: 'monospace' }}>
+                  <span className={styles.sourceTag}>
                     {report.type === 'citizen' ? '👤 Citizen' : '🔍 Auditor'}
                   </span>
                   {updating === report.id ? (

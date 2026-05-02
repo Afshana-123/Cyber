@@ -1,45 +1,112 @@
+/* ═══════════ Report Cards ═══════════ */
 .reportCard {
   animation: cardSlideIn 0.4s ease-out both;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  border-left: 4px solid var(--color-slate-200);
 }
 
 .reportCard:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
 }
 
+.reportCard.statusReceived { border-left-color: var(--color-amber-400); }
+.reportCard.statusInvestigating { border-left-color: var(--color-primary-500); }
+.reportCard.statusResolved { border-left-color: var(--color-emerald-500); }
+
 @keyframes cardSlideIn {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ═══════════ Card Header ═══════════ */
 .reportHeader {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--color-slate-100);
 }
 
 .reportMeta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
 }
 
-.reportCategory {
+/* ═══════════ Category Badge ═══════════ */
+.categoryBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
   font-weight: 700;
-  font-size: 15px;
-  color: var(--color-slate-800);
+  letter-spacing: 0.3px;
   text-transform: capitalize;
+  width: fit-content;
+}
+
+.categoryBadge.road_quality {
+  background: var(--color-amber-100);
+  color: var(--color-amber-800);
+}
+
+.categoryBadge.ghost_project {
+  background: var(--color-red-100);
+  color: var(--color-red-800);
+}
+
+.categoryBadge.suspicious_activity {
+  background: var(--color-red-100);
+  color: var(--color-red-700);
+}
+
+.categoryBadge.inspection {
+  background: var(--color-primary-100);
+  color: var(--color-primary-800);
+}
+
+.categoryBadge.other {
+  background: var(--color-slate-100);
+  color: var(--color-slate-700);
 }
 
 .reportTime {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-slate-400);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
 }
 
+/* ═══════════ Photo Thumbnail ═══════════ */
+.photoThumb {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-slate-100), var(--color-slate-200));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-slate-400);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.reportCard:hover .photoThumb {
+  background: linear-gradient(135deg, var(--color-primary-100), var(--color-primary-200));
+  color: var(--color-primary-500);
+}
+
+/* ═══════════ Card Body ═══════════ */
 .reportBody {
   display: flex;
   flex-direction: column;
@@ -47,42 +114,112 @@
 }
 
 .reportDescription {
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--color-slate-600);
-  line-height: 1.5;
+  line-height: 1.6;
   min-height: 40px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .reportInfoRow {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 12.5px;
   color: var(--color-slate-500);
+  padding: 6px 10px;
+  background: var(--color-slate-50);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease;
+}
+
+.reportInfoRow:hover {
+  background: var(--color-slate-100);
 }
 
 .reportInfoRow svg {
   flex-shrink: 0;
+  color: var(--color-slate-400);
 }
 
+.linkedProject {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  padding: 6px 10px;
+  background: var(--color-amber-50);
+  border: 1px solid var(--color-amber-100);
+  border-radius: var(--radius-sm);
+  color: var(--color-amber-700);
+  font-weight: 500;
+}
+
+.linkedProject svg {
+  flex-shrink: 0;
+  color: var(--color-amber-500);
+}
+
+/* ═══════════ GPS Link ═══════════ */
+.gpsLink {
+  color: var(--color-primary-600);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s ease;
+}
+
+.gpsLink:hover {
+  color: var(--color-primary-800);
+  text-decoration: underline;
+}
+
+/* ═══════════ Card Footer ═══════════ */
 .reportFooter {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 1px solid var(--color-slate-100);
 }
 
-.statusSelect {
-  padding: 6px 10px;
-  border: 1px solid var(--color-slate-300);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
+.sourceTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
   font-weight: 600;
+  font-family: var(--font-mono);
+  background: var(--color-slate-100);
+  color: var(--color-slate-500);
+}
+
+/* ═══════════ Status Select ═══════════ */
+.statusSelect {
+  padding: 5px 10px;
+  border: 1.5px solid var(--color-slate-300);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
   background: white;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
+  font-family: var(--font-body);
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
 }
 
 .statusSelect:focus {
@@ -94,53 +231,48 @@
 .statusSelect.received {
   color: var(--color-amber-700);
   border-color: var(--color-amber-300);
-  background: var(--color-amber-50);
+  background-color: var(--color-amber-50);
 }
 
 .statusSelect.under_investigation {
   color: var(--color-primary-700);
   border-color: var(--color-primary-300);
-  background: var(--color-primary-50);
+  background-color: var(--color-primary-50);
 }
 
 .statusSelect.resolved {
   color: var(--color-emerald-700);
   border-color: var(--color-emerald-300);
-  background: var(--color-emerald-50);
+  background-color: var(--color-emerald-50);
 }
 
-.kpiRow {
+/* ═══════════ Summary Bar ═══════════ */
+.summaryBar {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-bottom: 24px;
 }
 
 @media (max-width: 768px) {
-  .kpiRow {
+  .summaryBar {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-.photoThumb {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-sm);
+/* ═══════════ Empty State ═══════════ */
+.emptyState {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.emptyIcon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
   background: var(--color-slate-100);
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0 auto 16px;
   color: var(--color-slate-400);
-  flex-shrink: 0;
-}
-
-.gpsLink {
-  color: var(--color-primary-600);
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.gpsLink:hover {
-  text-decoration: underline;
 }
