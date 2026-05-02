@@ -1,14 +1,17 @@
 'use client';
 import { useState } from 'react';
 import { Bot, MapPin, Activity, CheckCircle, XCircle, AlertTriangle, Play, Loader2, Trophy, Hammer, ShieldAlert } from 'lucide-react';
+import { useSupabase } from '@/lib/hooks';
 import styles from './page.module.css';
 
 export default function TendersSimulationPage() {
+  const { data: districts } = useSupabase('/api/districts');
   const [phase, setPhase] = useState(0); // 0: Input, 1: Benchmarking, 2: Evaluating, 3: Awarded
+  const [dbStatus, setDbStatus] = useState(null); // null, 'saving', 'saved', 'error'
   const [projectData, setProjectData] = useState({
     title: '4-Lane Highway Expansion, Sector 7',
     description: '12km road expansion including 2 flyovers and drainage systems.',
-    location: 'Jhansi District'
+    district_id: ''
   });
 
   const [benchmark, setBenchmark] = useState(null);
@@ -93,24 +96,71 @@ export default function TendersSimulationPage() {
         
         // Ensure only one winner (best score)
         const passed = updatedBidders.filter(b => b.status === 'awarded');
-        if (passed.length > 1) {
-          // B3 is optimal in our mock
-          updatedBidders = updatedBidders.map(b => 
-            (b.status === 'awarded' && b.id !== 'B3') 
-              ? { ...b, status: 'rejected', reason: 'Outscored by a more optimal bidder.' } 
-              : b
-          );
+        let winningBidder = null;
+        if (passed.length > 0) {
+          if (passed.length > 1) {
+            // B3 is optimal in our mock
+            updatedBidders = updatedBidders.map(b => {
+              if (b.status === 'awarded' && b.id !== 'B3') {
+                return { ...b, status: 'rejected', reason: 'Outscored by a more optimal bidder.' };
+              }
+              if (b.status === 'awarded' && b.id === 'B3') {
+                winningBidder = b;
+              }
+              return b;
+            });
+          } else {
+            winningBidder = passed[0];
+          }
         }
         
         setBidders([...updatedBidders]);
         setPhase(3); // Done
+
+        if (winningBidder && projectData.district_id) {
+          saveProjectToDB(winningBidder, { low: 45.5, high: 52.0 });
+        }
       }, 3500);
 
     }, 2500);
   };
 
+  const saveProjectToDB = async (winningBidder, bench) => {
+    setDbStatus('saving');
+    try {
+      let anomaly = 0;
+      if (winningBidder.bidAmountCr > bench.high) {
+        anomaly = ((winningBidder.bidAmountCr - bench.high) / bench.high) * 100;
+      } else if (winningBidder.bidAmountCr < bench.low) {
+        anomaly = ((bench.low - winningBidder.bidAmountCr) / bench.low) * 100;
+      }
+
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: projectData.title,
+          district_id: projectData.district_id,
+          contractor_name: winningBidder.name,
+          contract_value_cr: winningBidder.bidAmountCr,
+          benchmark_low_cr: bench.low,
+          benchmark_high_cr: bench.high,
+          bids_received: bidders.length,
+          bid_anomaly_pct: parseFloat(anomaly.toFixed(1))
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to save');
+      setDbStatus('saved');
+    } catch (err) {
+      console.error(err);
+      setDbStatus('error');
+    }
+  };
+
   const resetSimulation = () => {
     setPhase(0);
+    setDbStatus(null);
     setBenchmark(null);
     setBidders(bidders.map(b => ({ ...b, status: 'pending', reason: '' })));
   };
@@ -171,11 +221,20 @@ export default function TendersSimulationPage() {
                 <input type="text" value={projectData.description} onChange={e => setProjectData({...projectData, description: e.target.value})} />
               </div>
               <div className={styles.inputGroup}>
-                <label>Location</label>
-                <input type="text" value={projectData.location} onChange={e => setProjectData({...projectData, location: e.target.value})} />
+                <label>District</label>
+                <select 
+                  value={projectData.district_id} 
+                  onChange={e => setProjectData({...projectData, district_id: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--color-slate-300)', marginTop: '6px', fontSize: '14px' }}
+                >
+                  <option value="">Select a district...</option>
+                  {(districts || []).map(d => (
+                    <option key={d.id} value={d.id}>{d.name}, {d.state}</option>
+                  ))}
+                </select>
               </div>
             </div>
-            <button className={styles.btnPrimary} onClick={handleStartSimulation}>
+            <button className={styles.btnPrimary} onClick={handleStartSimulation} disabled={!projectData.district_id || !projectData.title}>
               <Play size={18} fill="currentColor" /> Initialize AI Allocation
             </button>
           </div>
@@ -215,6 +274,22 @@ export default function TendersSimulationPage() {
                   {phase === 2 ? "AI is cross-referencing bids with past delivery records and market intelligence..." : "Final Tender Decision"}
                 </h3>
                 
+                {phase === 3 && dbStatus === 'saving' && (
+                  <div className="badge badge-pending" style={{ marginBottom: '16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <Loader2 size={14} className="spin" /> Writing to immutable ledger...
+                  </div>
+                )}
+                {phase === 3 && dbStatus === 'saved' && (
+                  <div className="badge badge-resolved" style={{ marginBottom: '16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <CheckCircle size={14} /> Saved to Project Dashboard
+                  </div>
+                )}
+                {phase === 3 && dbStatus === 'error' && (
+                  <div className="badge badge-flagged" style={{ marginBottom: '16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <AlertTriangle size={14} /> Failed to save to database
+                  </div>
+                )}
+
                 <div className={styles.biddersGrid}>
                   {bidders.map((bidder) => (
                     <div key={bidder.id} className={`${styles.bidderCard} ${styles[bidder.status]}`}>
