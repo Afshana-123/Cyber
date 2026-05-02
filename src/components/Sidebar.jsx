@@ -103,10 +103,10 @@ export default function Sidebar({ collapsed = false, onToggle }) {
 
       {/* User Profile */}
       <div className={styles.sidebarUser}>
-        <div className={styles.sidebarAvatar}>AS</div>
+        <div className={styles.sidebarAvatar}>TA</div>
         {!collapsed && (
           <div className={styles.sidebarUserInfo}>
-            <span className={styles.sidebarUserName}>Arjun Singh</span>
+            <span className={styles.sidebarUserName}>TRACE Admin</span>
             <span className={styles.sidebarUserRole}>
               Admin <ChevronDown size={14} />
             </span>
