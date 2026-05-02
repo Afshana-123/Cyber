@@ -1,248 +1,345 @@
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum UserRole { none, citizen, auditor, contractor }
 enum SchemeStatus { green, yellow, red }
 
-SchemeStatus _parseSchemeStatus(String? s) {
-  switch (s) {
-    case 'flagged': return SchemeStatus.red;
-    case 'watch':   return SchemeStatus.yellow;
-    default:        return SchemeStatus.green;
-  }
+// ─── District ───────────────────────────────────────────────────────────────
+
+class District {
+  final String id;
+  final String name;
+  final String state;
+  final int riskScore;
+  final String status; // 'clean' | 'watch' | 'flagged'
+  final double lat;
+  final double lng;
+  final double missingCrore;
+
+  const District({
+    required this.id,
+    required this.name,
+    required this.state,
+    required this.riskScore,
+    required this.status,
+    required this.lat,
+    required this.lng,
+    required this.missingCrore,
+  });
+
+  factory District.fromJson(Map<String, dynamic> j) => District(
+        id: j['id'] as String,
+        name: j['name'] as String,
+        state: j['state'] as String,
+        riskScore: (j['risk_score'] as num).toInt(),
+        status: j['status'] as String,
+        lat: (j['lat'] as num).toDouble(),
+        lng: (j['lng'] as num).toDouble(),
+        missingCrore: (j['missing_crore'] as num? ?? 0).toDouble(),
+      );
 }
 
-class Project {
-  final String id, name, contractor, milestone;
-  final double lat, lng;
-  final bool flagged;
-  final String? districtId;
-  final int riskScore;
-  final String status;
-  final double contractValueCr;
+// ─── Project (used by auditor & citizen) ────────────────────────────────────
 
-  Project({
+class Project {
+  final String id;
+  final String name;
+  final String contractor;
+  final String milestone; // current milestone description
+  final double lat;
+  final double lng;
+  final bool flagged;
+  final String districtId;
+  final String districtName;
+
+  const Project({
     required this.id,
     required this.name,
     required this.contractor,
     required this.milestone,
     required this.lat,
     required this.lng,
+    required this.districtId,
+    this.districtName = '',
     this.flagged = false,
-    this.districtId,
-    this.riskScore = 0,
-    this.status = 'clean',
-    this.contractValueCr = 0,
   });
 
+  /// Created from GET /api/districts-level projects list or /api/contract/:id
   factory Project.fromJson(Map<String, dynamic> j) => Project(
-    id: j['id'] ?? '',
-    name: j['name'] ?? '',
-    contractor: j['contractor_name'] ?? '',
-    milestone: 'Phase ${j['phase'] ?? 1}',
-    lat: (j['lat'] as num?)?.toDouble() ?? 0,
-    lng: (j['lng'] as num?)?.toDouble() ?? 0,
-    flagged: j['status'] == 'flagged' || j['phase2_frozen'] == true,
-    districtId: j['district_id'],
-    riskScore: j['risk_score'] ?? 0,
-    status: j['status'] ?? 'clean',
-    contractValueCr: (j['contract_value_cr'] as num?)?.toDouble() ?? 0,
-  );
+        id: j['id'] as String,
+        name: j['name'] as String,
+        contractor: j['contractor_name'] as String? ?? '',
+        milestone: 'Milestone ${j['phase'] ?? 1}',
+        lat: (j['lat'] as num? ?? 0).toDouble(),
+        lng: (j['lng'] as num? ?? 0).toDouble(),
+        flagged: j['status'] == 'flagged' || j['phase2_frozen'] == true,
+        districtId: j['district_id'] as String? ?? '',
+        districtName: (j['districts'] as Map<String, dynamic>?)?['name'] as String? ?? '',
+      );
 }
+
+// ─── Scheme ──────────────────────────────────────────────────────────────────
 
 class Scheme {
   final String id;
   final String name;
-  final double allocated, returned;
-  final SchemeStatus status;
-  final int beneficiaries;
+  final double allocated;
+  final double withdrawn;
+  final double returned;
+  final double missingCrore;
+  final double returnRate;
   final int riskScore;
+  final String status;
+  final int beneficiaryCount;
 
-  Scheme({
-    this.id = '',
+  const Scheme({
+    required this.id,
     required this.name,
     required this.allocated,
+    required this.withdrawn,
     required this.returned,
+    required this.missingCrore,
+    required this.returnRate,
+    required this.riskScore,
     required this.status,
-    required this.beneficiaries,
-    this.riskScore = 0,
+    required this.beneficiaryCount,
   });
 
+  SchemeStatus get schemeStatus {
+    if (riskScore > 65) return SchemeStatus.red;
+    if (riskScore > 35) return SchemeStatus.yellow;
+    return SchemeStatus.green;
+  }
+
   factory Scheme.fromJson(Map<String, dynamic> j) => Scheme(
-    id: j['id'] ?? '',
-    name: j['name'] ?? '',
-    allocated: (j['allocated_crore'] as num?)?.toDouble() ?? 0,
-    returned: (j['returned_crore'] as num?)?.toDouble() ?? 0,
-    status: _parseSchemeStatus(j['status']),
-    beneficiaries: j['beneficiary_count'] ?? 0,
-    riskScore: j['risk_score'] ?? 0,
-  );
+        id: j['id'] as String,
+        name: j['name'] as String,
+        allocated: (j['allocated_crore'] as num).toDouble(),
+        withdrawn: (j['withdrawn_crore'] as num).toDouble(),
+        returned: (j['returned_crore'] as num).toDouble(),
+        missingCrore: (j['missing_crore'] as num? ?? 0).toDouble(),
+        returnRate: (j['return_rate'] as num? ?? 0).toDouble(),
+        riskScore: (j['risk_score'] as num).toInt(),
+        status: j['status'] as String,
+        beneficiaryCount: (j['beneficiary_count'] as num? ?? 0).toInt(),
+      );
 }
+
+// ─── Report (citizen submission) ─────────────────────────────────────────────
 
 class Report {
   final String? id;
-  final String category, description, photoPath;
-  final double lat, lng;
+  final String type;         // 'citizen'
+  final String category;     // 'road_quality' | 'ghost_project' | 'suspicious_activity' | 'other'
+  final String description;
+  final String photoUrl;     // local path before upload; URL after
+  final double lat;
+  final double lng;
+  final String districtId;   // required by backend
   final String? projectId;
   final String status;
   final DateTime createdAt;
 
-  Report({
+  const Report({
     this.id,
+    required this.type,
     required this.category,
     required this.description,
-    required this.photoPath,
+    required this.photoUrl,
     required this.lat,
     required this.lng,
+    required this.districtId,
     this.projectId,
     this.status = 'Received',
     DateTime? createdAt,
-  }) : createdAt = createdAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? const _Now();
 
   Report copyWith({String? id, String? status}) => Report(
-    id: id ?? this.id,
-    category: category,
-    description: description,
-    photoPath: photoPath,
-    lat: lat,
-    lng: lng,
-    projectId: projectId,
-    status: status ?? this.status,
-    createdAt: createdAt,
-  );
+        id: id ?? this.id,
+        type: type,
+        category: category,
+        description: description,
+        photoUrl: photoUrl,
+        lat: lat,
+        lng: lng,
+        districtId: districtId,
+        projectId: projectId,
+        status: status ?? this.status,
+        createdAt: createdAt,
+      );
 
-  Map<String, dynamic> toJson(String districtId) => {
-    'type': 'citizen',
-    'category': category,
-    'description': description,
-    'photo_url': photoPath,
-    'gps_lat': lat,
-    'gps_lng': lng,
-    'project_id': projectId,
-    'district_id': districtId,
-    'submitted_by': 'citizen',
-  };
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'type': type,
+        'category': category,
+        'description': description,
+        'photo_url': photoUrl,
+        'gps_lat': lat,
+        'gps_lng': lng,
+        'district_id': districtId,
+        if (projectId != null) 'project_id': projectId,
+        'submitted_by': type,
+        'status': status,
+        'created_at': createdAt.toIso8601String(),
+      };
 
   factory Report.fromJson(Map<String, dynamic> j) => Report(
-    id: j['id'] ?? j['report_id'],
-    category: j['category'] ?? '',
-    description: j['description'] ?? '',
-    photoPath: j['photo_url'] ?? '',
-    lat: (j['gps_lat'] as num?)?.toDouble() ?? 0,
-    lng: (j['gps_lng'] as num?)?.toDouble() ?? 0,
-    projectId: j['project_id'],
-    status: j['verdict'] ?? j['status'] ?? 'Received',
-    createdAt: j['created_at'] != null
-        ? DateTime.tryParse(j['created_at']) ?? DateTime.now()
-        : DateTime.now(),
-  );
+        id: j['id'] as String?,
+        type: j['type'] as String? ?? 'citizen',
+        category: j['category'] as String? ?? 'other',
+        description: j['description'] as String? ?? '',
+        photoUrl: j['photo_url'] as String? ?? '',
+        lat: (j['gps_lat'] as num?)?.toDouble() ?? 0.0,
+        lng: (j['gps_lng'] as num?)?.toDouble() ?? 0.0,
+        districtId: j['district_id'] as String? ?? '',
+        projectId: j['project_id'] as String?,
+        status: j['status'] as String? ?? 'Received',
+        createdAt: j['created_at'] != null ? DateTime.parse(j['created_at'] as String) : null,
+      );
 }
+
+// Helper: DateTime.now() can't be used as a default const value
+class _Now implements DateTime {
+  const _Now();
+  @override dynamic noSuchMethod(Invocation i) => DateTime.now();
+}
+
+// ─── Inspection (auditor submission) ─────────────────────────────────────────
 
 class ChecklistItem {
   final String label;
-  String result; // Pass/Fail/Partial
-  ChecklistItem(this.label, [this.result = 'Pass']);
+  final String key;   // snake_case key sent to backend e.g. 'road_width'
+  String result;      // 'pass' | 'fail' | 'partial'
+
+  ChecklistItem(this.label, this.key, [this.result = 'pass']);
 }
 
 class Inspection {
   final String? id;
-  final String projectId, verdict;
+  final String projectId;
+  final String auditorId;
+  final double gpsLat;
+  final double gpsLng;
+  final List<String> photoUrls;
+  final Map<String, String> checklist; // { 'road_width': 'pass', ... }
+  final String verdict; // 'approved' | 'rejected' | 'needs_reinspection'
+  final String notes;
   final int failedItems;
   final DateTime createdAt;
-  final String? projectName;
-  final String? txHash;
 
-  Inspection({
+  const Inspection({
     this.id,
     required this.projectId,
+    required this.auditorId,
+    required this.gpsLat,
+    required this.gpsLng,
+    required this.photoUrls,
+    required this.checklist,
     required this.verdict,
+    required this.notes,
     required this.failedItems,
     required this.createdAt,
-    this.projectName,
-    this.txHash,
   });
 
   Inspection copyWith({String? id}) => Inspection(
-    id: id ?? this.id,
-    projectId: projectId,
-    verdict: verdict,
-    failedItems: failedItems,
-    createdAt: createdAt,
-    projectName: projectName,
-    txHash: txHash,
-  );
+        id: id ?? this.id,
+        projectId: projectId,
+        auditorId: auditorId,
+        gpsLat: gpsLat,
+        gpsLng: gpsLng,
+        photoUrls: photoUrls,
+        checklist: checklist,
+        verdict: verdict,
+        notes: notes,
+        failedItems: failedItems,
+        createdAt: createdAt,
+      );
 
-  factory Inspection.fromJson(Map<String, dynamic> j) {
-    final checklist = j['checklist'];
-    int failed = 0;
-    if (checklist is Map) {
-      failed = checklist.values.where((v) => v == 'fail').length;
-    }
-    return Inspection(
-      id: j['id'] ?? j['inspection_id'],
-      projectId: j['project_id'] ?? '',
-      verdict: j['verdict'] ?? 'pending',
-      failedItems: failed,
-      createdAt: j['created_at'] != null
-          ? DateTime.tryParse(j['created_at']) ?? DateTime.now()
-          : DateTime.now(),
-      projectName: j['project_name'],
-      txHash: j['tx_hash'],
-    );
-  }
+  Map<String, dynamic> toJson() => {
+        'project_id': projectId,
+        'auditor_id': auditorId,
+        'gps_lat': gpsLat,
+        'gps_lng': gpsLng,
+        'photos': photoUrls,
+        'checklist': checklist,
+        'verdict': verdict,
+        'notes': notes,
+      };
 }
+
+// ─── Milestone / Payment ─────────────────────────────────────────────────────
 
 class Milestone {
   final int index;
-  final double amount; // ₹ crore
-  final String status; // Released / Pending / Blocked
+  final double amount;  // ₹ crore
+  final String status;  // 'released' | 'pending' | 'blocked'
   final String? blockReason;
   final DateTime? releasedAt;
+  final DateTime? expectedDate;
 
-  Milestone({
+  const Milestone({
     required this.index,
     required this.amount,
     required this.status,
     this.blockReason,
     this.releasedAt,
+    this.expectedDate,
   });
 
   factory Milestone.fromJson(Map<String, dynamic> j) => Milestone(
-    index: j['milestone'] ?? 0,
-    amount: (j['amount_cr'] as num?)?.toDouble() ?? 0,
-    status: _capitalize(j['status'] ?? 'pending'),
-    blockReason: j['block_reason'],
-    releasedAt: j['released_at'] != null
-        ? DateTime.tryParse(j['released_at'])
-        : null,
-  );
+        index: (j['milestone'] as num).toInt(),
+        amount: (j['amount_cr'] as num).toDouble(),
+        status: _capitalise(j['status'] as String),
+        blockReason: j['block_reason'] as String?,
+        releasedAt: j['released_at'] != null ? DateTime.tryParse(j['released_at'] as String) : null,
+        expectedDate: j['expected_date'] != null ? DateTime.tryParse(j['expected_date'] as String) : null,
+      );
+
+  static String _capitalise(String s) =>
+      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 }
 
 class Contract {
-  final String id, name;
+  final String id;
+  final String name;
+  final String contractorName;
+  final double totalValueCr;
   final int riskScore;
+  final bool phase2Frozen;
   final List<Milestone> milestones;
-  final String contractor;
-  final double contractValueCr;
 
-  Contract({
+  const Contract({
     required this.id,
     required this.name,
+    required this.contractorName,
+    required this.totalValueCr,
     required this.riskScore,
+    required this.phase2Frozen,
     required this.milestones,
-    this.contractor = '',
-    this.contractValueCr = 0,
   });
 
-  factory Contract.fromJson(Map<String, dynamic> j) => Contract(
-    id: j['id'] ?? j['contract_id'] ?? '',
-    name: j['name'] ?? '',
-    riskScore: j['risk_score'] ?? 0,
-    contractor: j['contractor_name'] ?? j['contractor'] ?? '',
-    contractValueCr: (j['contract_value_cr'] ?? j['total_value_cr'] as num?)?.toDouble() ?? 0,
-    milestones: j['milestones'] != null
-        ? (j['milestones'] as List).map((m) => Milestone.fromJson(m)).toList()
-        : j['payments'] != null
-            ? (j['payments'] as List).map((m) => Milestone.fromJson(m)).toList()
-            : [],
-  );
-}
+  factory Contract.fromPaymentsJson(Map<String, dynamic> j) => Contract(
+        id: j['contract_id'] as String,
+        name: '', // not returned by /api/payments
+        contractorName: j['contractor'] as String? ?? '',
+        totalValueCr: (j['total_value_cr'] as num).toDouble(),
+        riskScore: 0,
+        phase2Frozen: (j['milestones'] as List<dynamic>).any(
+          (m) => m['status'] == 'blocked',
+        ),
+        milestones: (j['milestones'] as List<dynamic>)
+            .map((m) => Milestone.fromJson(m as Map<String, dynamic>))
+            .toList(),
+      );
 
-String _capitalize(String s) =>
-    s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+  factory Contract.fromContractJson(Map<String, dynamic> j) => Contract(
+        id: j['id'] as String,
+        name: j['name'] as String,
+        contractorName: j['contractor_name'] as String? ?? '',
+        totalValueCr: (j['contract_value_cr'] as num).toDouble(),
+        riskScore: (j['risk_score'] as num).toInt(),
+        phase2Frozen: j['phase2_frozen'] as bool? ?? false,
+        milestones: (j['payments'] as List<dynamic>? ?? [])
+            .map((m) => Milestone.fromJson(m as Map<String, dynamic>))
+            .toList(),
+      );
+}

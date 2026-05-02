@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../flutter_flow/flutter_flow_theme.dart';
-import '../../models/models.dart';
-import '../../services/api_service.dart';
-import '../../widgets/common.dart';
 
+/// QR scan page — reads any QR code and passes its value as project_id.
+/// The value can be a project UUID, district UUID, or any string.
 class QrScanPage extends StatefulWidget {
   const QrScanPage({super.key});
   @override
@@ -12,63 +12,60 @@ class QrScanPage extends StatefulWidget {
 }
 
 class _QrScanPageState extends State<QrScanPage> {
-  bool _loading = false;
-  List<Project> _projects = [];
+  final _ctrl = MobileScannerController();
+  bool _handled = false;
 
   @override
-  void initState() {
-    super.initState();
-    _loadProjects();
-  }
+  void dispose() { _ctrl.dispose(); super.dispose(); }
 
-  Future<void> _loadProjects() async {
-    try {
-      _projects = await ApiService.I.getProjects();
-    } catch (_) {}
-    if (mounted) setState(() {});
-  }
-
-  void _onScan(String code) {
-    final match = _projects.any((p) => p.id == code);
-    final pid = match ? code : (_projects.isNotEmpty ? _projects.first.id : '');
-    context.pushReplacement('/auditor/inspect?pid=$pid');
+  void _onDetect(BarcodeCapture cap) {
+    if (_handled) return;
+    final code = cap.barcodes.firstOrNull?.rawValue;
+    if (code == null || code.isEmpty) return;
+    _handled = true;
+    // Pass the QR value as the project ID — InspectionFormPage will call
+    // /api/contract/:id to resolve it against the real DB.
+    context.pushReplacement('/auditor/inspect?pid=$code');
   }
 
   @override
   Widget build(BuildContext context) {
     final t = FlutterFlowTheme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan QR')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Container(
-            width: 260, height: 260,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: t.primary, width: 2),
-              color: t.primaryBackground,
-            ),
-            child: Icon(Icons.qr_code_2, size: 120, color: t.primary.withOpacity(0.3)),
-          ),
-          const SizedBox(height: 24),
-          Text('Point camera at project QR code', style: t.bodyMedium),
-          const SizedBox(height: 24),
-          PrimaryButton(
-            label: 'Simulate scan (demo)',
-            icon: Icons.qr_code_scanner,
-            loading: _loading,
-            onPressed: () {
-              final pid = _projects.isNotEmpty ? _projects.first.id : '';
-              if (pid.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No projects loaded')));
-                return;
-              }
-              context.pushReplacement('/auditor/inspect?pid=$pid');
-            },
-          ),
-        ]),
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        title: const Text('Scan project QR'),
       ),
+      body: Stack(children: [
+        MobileScanner(controller: _ctrl, onDetect: _onDetect),
+        Center(child: Container(
+          width: 260, height: 260,
+          decoration: BoxDecoration(
+              border: Border.all(color: Colors.white, width: 3),
+              borderRadius: BorderRadius.circular(20)),
+        )),
+        Positioned(
+          left: 0, right: 0, bottom: 40,
+          child: Column(children: [
+            const Text('Align the QR code within the box',
+                style: TextStyle(color: Colors.white)),
+            const SizedBox(height: 12),
+            TextButton(
+              // Demo: navigates directly to inspection without a real QR
+              onPressed: () {
+                if (_handled) return;
+                _handled = true;
+                // Use a placeholder ID — will show "Site Inspection" as project name
+                context.pushReplacement('/auditor/inspect?pid=demo');
+              },
+              child: Text('Simulate scan (demo)',
+                  style: TextStyle(color: t.tertiary)),
+            ),
+          ]),
+        ),
+      ]),
     );
   }
 }

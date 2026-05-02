@@ -16,18 +16,18 @@ app.use((req, _res, next) => {
 });
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
-app.use('/api/auth',         require('./routes/auth'));
-app.use('/api/districts',    require('./routes/districts'));
-app.use('/api/alerts',       require('./routes/alerts'));
-app.use('/api/projects',     require('./routes/projects'));      // GET /api/projects
-app.use('/api/contract',     require('./routes/contracts'));
-app.use('/api/schemes',      require('./routes/schemes'));
-app.use('/api/risk-score',   require('./routes/riskScore'));
-app.use('/api',              require('./routes/reports'));       // POST /api/report, /api/inspection
-app.use('/api/inspections',  require('./routes/inspections'));   // GET /api/inspections
-app.use('/api/invoice',      require('./routes/invoices'));
-app.use('/api/milestone',    require('./routes/milestones'));
-app.use('/api/payments',     require('./routes/payments'));
+app.use('/api/auth',       require('./routes/auth'));
+app.use('/api/districts',  require('./routes/districts'));
+app.use('/api/alerts',     require('./routes/alerts'));
+app.use('/api/contract',   require('./routes/contracts'));
+app.use('/api/schemes',    require('./routes/schemes'));
+app.use('/api/projects',   require('./routes/projects'));
+app.use('/api/risk-score', require('./routes/riskScore'));
+app.use('/api',            require('./routes/reports'));     // POST /api/report, /api/inspection
+app.use('/api/invoice',    require('./routes/invoices'));
+app.use('/api/milestone',  require('./routes/milestones'));
+app.use('/api/payments',    require('./routes/payments'));
+app.use('/api/blockchain',  require('./routes/blockchain'));
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
