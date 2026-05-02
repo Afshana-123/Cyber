@@ -27,6 +27,7 @@ export async function POST(request) {
         benchmark_low_cr: Number(body.benchmark_low_cr) || 0,
         benchmark_high_cr: Number(body.benchmark_high_cr) || 0,
         bids_received: Number(body.bids_received) || 0,
+        bid_anomaly_pct: Number(body.bid_anomaly_pct) || 0,
         risk_score: 0,
         status: 'clean',
         phase: 1,
