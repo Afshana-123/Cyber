@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import {
   MessageSquareWarning, MapPin, Clock, Camera, Loader2,
-  AlertTriangle, CheckCircle, Search, ExternalLink,
+  AlertTriangle, CheckCircle, Search, ExternalLink, X,
   Shield, Construction, ClipboardCheck, FileText, User, Scan
 } from 'lucide-react';
 import { useSupabase, timeAgo } from '@/lib/hooks';
@@ -33,6 +33,7 @@ export default function CitizenReportsPage() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [updating, setUpdating] = useState(null);
+  const [lightboxReport, setLightboxReport] = useState(null);
 
   const handleStatusChange = async (reportId, newStatus) => {
     setUpdating(reportId);
@@ -101,21 +102,33 @@ export default function CitizenReportsPage() {
         </div>
       </div>
 
-      {/* KPI Stats */}
+      {/* KPI Stats — clickable to filter */}
       <div className={styles.kpiGrid}>
-        <div className={styles.kpiCard}>
+        <div
+          className={`${styles.kpiCard} ${styles.kpiClickable} ${filterStatus === 'all' ? styles.kpiActive : ''}`}
+          onClick={() => setFilterStatus('all')}
+        >
           <div className={`${styles.kpiIcon} ${styles.kpiIconTotal}`}><MessageSquareWarning size={22} /></div>
           <div className={styles.kpiInfo}><span className={styles.kpiValue}>{totalReports}</span><span className={styles.kpiLabel}>Total Reports</span></div>
         </div>
-        <div className={styles.kpiCard}>
+        <div
+          className={`${styles.kpiCard} ${styles.kpiClickable} ${filterStatus === 'received' ? styles.kpiActive : ''}`}
+          onClick={() => setFilterStatus('received')}
+        >
           <div className={`${styles.kpiIcon} ${styles.kpiIconPending}`}><Clock size={22} /></div>
           <div className={styles.kpiInfo}><span className={styles.kpiValue}>{receivedCount}</span><span className={styles.kpiLabel}>Pending Review</span></div>
         </div>
-        <div className={styles.kpiCard}>
+        <div
+          className={`${styles.kpiCard} ${styles.kpiClickable} ${filterStatus === 'under_investigation' ? styles.kpiActive : ''}`}
+          onClick={() => setFilterStatus('under_investigation')}
+        >
           <div className={`${styles.kpiIcon} ${styles.kpiIconInvestigating}`}><Scan size={22} /></div>
           <div className={styles.kpiInfo}><span className={styles.kpiValue}>{investigatingCount}</span><span className={styles.kpiLabel}>Investigating</span></div>
         </div>
-        <div className={styles.kpiCard}>
+        <div
+          className={`${styles.kpiCard} ${styles.kpiClickable} ${filterStatus === 'resolved' ? styles.kpiActive : ''}`}
+          onClick={() => setFilterStatus('resolved')}
+        >
           <div className={`${styles.kpiIcon} ${styles.kpiIconResolved}`}><CheckCircle size={22} /></div>
           <div className={styles.kpiInfo}><span className={styles.kpiValue}>{resolvedCount}</span><span className={styles.kpiLabel}>Resolved</span></div>
         </div>
@@ -152,7 +165,12 @@ export default function CitizenReportsPage() {
                       <span className={`${styles.categoryPill} ${styles[cat.cls]}`}><CatIcon size={13} /> {cat.label}</span>
                       <span className={styles.cardTimestamp}><Clock size={11} /> {timeAgo(report.created_at)}</span>
                     </div>
-                    <div className={styles.evidenceThumbnail}>
+                    <div
+                      className={styles.evidenceThumbnail}
+                      onClick={() => report.photo_url ? setLightboxReport(report) : null}
+                      title={report.photo_url ? 'Click to view photo' : ''}
+                      style={report.photo_url ? { cursor: 'pointer' } : {}}
+                    >
                       <Camera size={22} />
                       <span className={styles.evidenceLabel}>Photo</span>
                     </div>
@@ -197,6 +215,40 @@ export default function CitizenReportsPage() {
           })}
         </div>
       )}
+
+      {/* ── Photo Lightbox Modal ── */}
+      {lightboxReport && (() => {
+        const lbCat = getCat(lightboxReport.category);
+        return (
+          <div className={styles.lightboxOverlay} onClick={() => setLightboxReport(null)}>
+            <div className={styles.lightboxContent} onClick={(e) => e.stopPropagation()}>
+              <button className={styles.lightboxClose} onClick={() => setLightboxReport(null)}>
+                <X size={24} />
+              </button>
+              <img
+                src={lightboxReport.photo_url}
+                alt="Evidence photo"
+                className={styles.lightboxImg}
+              />
+              <div className={styles.lightboxInfo}>
+                <span className={styles.lightboxCategory}>
+                  {lbCat.label}
+                </span>
+                <span className={styles.lightboxMeta}>
+                  <MapPin size={13} /> {lightboxReport.districts?.name || 'Unknown'}
+                  {lightboxReport.districts?.state ? `, ${lightboxReport.districts.state}` : ''}
+                </span>
+                <span className={styles.lightboxMeta}>
+                  <Clock size={13} /> {timeAgo(lightboxReport.created_at)}
+                </span>
+                {lightboxReport.description && (
+                  <p className={styles.lightboxDesc}>{lightboxReport.description}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
