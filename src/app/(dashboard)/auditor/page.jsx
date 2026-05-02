@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import { ShieldAlert, Sparkles, AlertTriangle, BarChart3, Network, Download, MapPin, Loader2, Users, IndianRupee } from 'lucide-react';
 import RiskGauge from '@/components/RiskGauge';
 import { useSupabase } from '@/lib/hooks';
@@ -80,7 +81,7 @@ export default function AuditorPage() {
         <div className="auditor-kpi">
           <span className="auditor-kpi-icon" style={{ background: 'var(--color-emerald-100)', color: 'var(--color-emerald-700)' }}><IndianRupee size={20} /></span>
           <div>
-            <span className="auditor-kpi-val">₹{ghostAmount} Cr</span>
+            <span className="auditor-kpi-val">₹{parseFloat(ghostAmount).toFixed(2)} Cr</span>
             <span className="auditor-kpi-label">Ghost Siphoned</span>
           </div>
         </div>
@@ -218,7 +219,11 @@ export default function AuditorPage() {
                   <tr key={bene.id} style={{ background: 'var(--color-amber-50)' }}>
                     <td style={{ fontWeight: 500, fontSize: '13px' }}>{bene.schemes?.name || '—'}</td>
                     <td className="amount-cell">₹{bene.amount_cr} Cr</td>
-                    <td style={{ fontSize: '12px', color: 'var(--color-slate-600)' }}>{bene.ghost_signals ? Object.entries(bene.ghost_signals).map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`).join(', ') : '—'}</td>
+                    <td style={{ fontSize: '12px', color: 'var(--color-slate-600)' }}>
+                      {bene.ghost_signals && typeof bene.ghost_signals === 'object'
+                        ? Object.entries(bene.ghost_signals).map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`).join(', ')
+                        : (bene.ghost_signals || '—')}
+                    </td>
                   </tr>
                 ))}
               </tbody>

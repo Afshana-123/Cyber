@@ -4,7 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../flutter_flow/flutter_flow_theme.dart';
-import '../../services/mock_api.dart';
+import '../../models/models.dart';
+import '../../services/api_service.dart';
 import '../../widgets/common.dart';
 
 class SubmitInvoicePage extends StatefulWidget {
@@ -14,15 +15,34 @@ class SubmitInvoicePage extends StatefulWidget {
 }
 
 class _SubmitInvoicePageState extends State<SubmitInvoicePage> {
-  String _contract = 'JHS-RD-017';
+  String? _contract;
   String _material = 'Cement (OPC 53)';
   final _amount = TextEditingController();
   XFile? _photo;
   bool _submitting = false;
+  List<Project> _projects = [];
+  bool _loadingProjects = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProjects();
+  }
+
+  Future<void> _loadProjects() async {
+    try {
+      _projects = await ApiService.I.getProjects();
+      if (_projects.isNotEmpty) _contract = _projects.first.id;
+    } catch (_) {}
+    if (mounted) setState(() => _loadingProjects = false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = FlutterFlowTheme.of(context);
+    if (_loadingProjects) {
+      return Scaffold(appBar: AppBar(title: const Text('Submit invoice')), body: const Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Submit invoice')),
       body: ListView(
@@ -31,9 +51,9 @@ class _SubmitInvoicePageState extends State<SubmitInvoicePage> {
           SectionCard(title: 'Contract', child: DropdownButtonFormField<String>(
             value: _contract,
             isExpanded: true,
-            items: MockApi.I.contracts.map((c) => DropdownMenuItem(
+            items: _projects.map((c) => DropdownMenuItem(
               value: c.id,
-              child: Text('${c.id} — ${c.name}', overflow: TextOverflow.ellipsis, maxLines: 1),
+              child: Text('${c.name}', overflow: TextOverflow.ellipsis, maxLines: 1),
             )).toList(),
             onChanged: (v) => setState(() => _contract = v!),
           )),
@@ -65,21 +85,30 @@ class _SubmitInvoicePageState extends State<SubmitInvoicePage> {
                   : ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(File(_photo!.path), fit: BoxFit.cover, width: double.infinity)),
             ),
           )),
-          SectionCard(title: 'Amount (₹) — OCR is roadmap, enter manually', child: TextField(
+          SectionCard(title: 'Amount (₹ Cr)', child: TextField(
             controller: _amount, keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(prefixText: '₹  ', hintText: '0'),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+            decoration: const InputDecoration(prefixText: '₹  ', hintText: '0.0'),
           )),
           const SizedBox(height: 6),
           PrimaryButton(label: 'Submit invoice', icon: Icons.send_rounded, loading: _submitting, onPressed: () async {
+            if (_contract == null) { _snack('Select a contract'); return; }
             if (_photo == null) { _snack('Upload the invoice photo'); return; }
             if ((_amount.text).isEmpty) { _snack('Enter amount'); return; }
             setState(() => _submitting = true);
-            final id = await MockApi.I.postInvoice(_contract, _material, double.tryParse(_amount.text) ?? 0);
-            setState(() => _submitting = false);
-            if (!mounted) return;
-            _snack('Invoice $id linked to $_contract');
-            context.pop();
+            try {
+              final id = await ApiService.I.postInvoice(
+                projectId: _contract!,
+                material: _material,
+                amountCr: double.tryParse(_amount.text) ?? 0,
+              );
+              if (!mounted) return;
+              setState(() => _submitting = false);
+              _snack('Invoice $id linked to contract');
+              context.pop();
+            } catch (e) {
+              if (mounted) { setState(() => _submitting = false); _snack('Error: $e'); }
+            }
           }),
         ],
       ),

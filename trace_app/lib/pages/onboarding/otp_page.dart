@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../app_state.dart';
 import '../../flutter_flow/flutter_flow_theme.dart';
+import '../../services/api_service.dart';
 import '../../widgets/common.dart';
 
 class OtpPage extends StatefulWidget {
@@ -72,20 +73,32 @@ class _OtpPageState extends State<OtpPage> {
 
   Future<void> _handle() async {
     setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
     if (!_sent) {
+      // Phase 1: Validate phone
       if (_phoneCtl.text.length != 10) {
         _snack('Enter a valid 10-digit mobile number');
       } else {
         setState(() => _sent = true);
       }
     } else {
+      // Phase 2: "Verify" OTP and call backend login
       if (_otpCtl.text.length != 6) {
         _snack('OTP must be 6 digits');
       } else {
-        AppState().phone = _phoneCtl.text;
-        context.go('/profile');
+        try {
+          final state = AppState();
+          final data = await ApiService.I.login(_phoneCtl.text, state.apiRole);
+          state.phone = _phoneCtl.text;
+          state.setLoginData(
+            tok: data['token'] ?? '',
+            nm: data['name'] ?? '',
+            dist: data['district'] ?? 'Jhansi',
+          );
+          if (!mounted) return;
+          context.go('/profile');
+        } catch (e) {
+          _snack('Login failed: $e');
+        }
       }
     }
     if (mounted) setState(() => _loading = false);

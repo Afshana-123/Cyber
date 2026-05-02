@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../app_state.dart';
 import '../../flutter_flow/flutter_flow_theme.dart';
 import '../../models/models.dart';
-import '../../services/mock_api.dart';
+import '../../services/api_service.dart';
 import '../../widgets/common.dart';
 
 class ReportIssuePage extends StatefulWidget {
@@ -23,9 +24,17 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
   bool _submitting = false;
   final _desc = TextEditingController();
   String? _suggestedProjectId;
+  List<Project> _projects = [];
 
   @override
-  void initState() { super.initState(); _getLocation(); }
+  void initState() { super.initState(); _loadProjects(); _getLocation(); }
+
+  Future<void> _loadProjects() async {
+    try {
+      _projects = await ApiService.I.getProjects(districtId: AppState().districtId);
+      if (mounted) setState(() {});
+    } catch (_) {}
+  }
 
   Future<void> _getLocation() async {
     setState(() => _locating = true);
@@ -39,7 +48,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
             headingAccuracy: 0, speed: 0, speedAccuracy: 0));
       _pos = p;
       // Suggest nearest project
-      for (final proj in MockApi.I.projects) {
+      for (final proj in _projects) {
         final d = Geolocator.distanceBetween(p.latitude, p.longitude, proj.lat, proj.lng);
         if (d < 1500) { _suggestedProjectId = proj.id; break; }
       }
@@ -56,13 +65,20 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
     if (_photo == null) { _snack('Photo is mandatory'); return; }
     if (_pos == null) { _snack('GPS is mandatory — turn on location'); return; }
     setState(() => _submitting = true);
-    final id = await MockApi.I.postReport(Report(
-      category: _category, description: _desc.text, photoPath: _photo!.path,
-      lat: _pos!.latitude, lng: _pos!.longitude, projectId: _suggestedProjectId,
-    ));
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    showDialog(context: context, builder: (_) => _SubmittedDialog(reportId: id));
+    try {
+      final id = await ApiService.I.postReport(
+        Report(
+          category: _category, description: _desc.text, photoPath: _photo!.path,
+          lat: _pos!.latitude, lng: _pos!.longitude, projectId: _suggestedProjectId,
+        ),
+        AppState().districtId,
+      );
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      showDialog(context: context, builder: (_) => _SubmittedDialog(reportId: id));
+    } catch (e) {
+      if (mounted) { setState(() => _submitting = false); _snack('Error: $e'); }
+    }
   }
 
   void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
@@ -127,7 +143,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
             child: Row(children: [
               Icon(Icons.link, color: t.secondary),
               const SizedBox(width: 10),
-              Expanded(child: Text('Linking to nearby project ${_suggestedProjectId!}', style: t.bodyMedium)),
+              Expanded(child: Text('Linking to nearby project', style: t.bodyMedium)),
             ]),
           ),
           SectionCard(

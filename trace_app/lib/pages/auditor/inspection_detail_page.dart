@@ -1,18 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../flutter_flow/flutter_flow_theme.dart';
-import '../../services/mock_api.dart';
+import '../../models/models.dart';
+import '../../services/api_service.dart';
 import '../../widgets/common.dart';
 
-class InspectionDetailPage extends StatelessWidget {
+class InspectionDetailPage extends StatefulWidget {
   final String id;
   const InspectionDetailPage({super.key, required this.id});
+  @override
+  State<InspectionDetailPage> createState() => _InspectionDetailPageState();
+}
+
+class _InspectionDetailPageState extends State<InspectionDetailPage> {
+  Inspection? _inspection;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final all = await ApiService.I.getInspections();
+      final match = all.where((x) => x.id == widget.id);
+      _inspection = match.isNotEmpty ? match.first : (all.isNotEmpty ? all.first : null);
+    } catch (_) {}
+    if (mounted) setState(() => _loading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = FlutterFlowTheme.of(context);
-    final i = MockApi.I.inspections.firstWhere((x) => x.id == id,
-        orElse: () => MockApi.I.inspections.first);
+    if (_loading) {
+      return Scaffold(appBar: AppBar(title: const Text('Inspection')), body: const Center(child: CircularProgressIndicator()));
+    }
+    if (_inspection == null) {
+      return Scaffold(appBar: AppBar(title: const Text('Inspection')), body: Center(child: Text('Not found', style: t.headlineSmall)));
+    }
+    final i = _inspection!;
     return Scaffold(
       appBar: AppBar(title: Text(i.id ?? 'Inspection'),
         actions: [IconButton(onPressed: () {
@@ -28,13 +56,16 @@ class InspectionDetailPage extends StatelessWidget {
               StatusPill(label: i.verdict, color: statusColor(i.verdict, context)),
             ]),
             const SizedBox(height: 10),
-            Text('Project: ${i.projectId}', style: t.titleMedium),
+            Text('Project: ${i.projectName ?? i.projectId}', style: t.titleMedium),
             const SizedBox(height: 4),
             Text('Submitted ${DateFormat('d MMM yyyy, HH:mm').format(i.createdAt)}', style: t.bodySmall),
             const SizedBox(height: 4),
             Text('Failed checklist items: ${i.failedItems}', style: t.bodyMedium),
+            if (i.txHash != null) ...[
+              const SizedBox(height: 8),
+              Text('TX Hash: ${i.txHash}', style: t.bodySmall.copyWith(fontFamily: 'monospace')),
+            ],
           ])),
-          SectionCard(title: 'GPS stamp', child: Text('25.4484, 78.5685 (±6 m)', style: t.bodyMedium)),
           SectionCard(title: 'Photos', child: GridView.count(
             crossAxisCount: 3,
             shrinkWrap: true,

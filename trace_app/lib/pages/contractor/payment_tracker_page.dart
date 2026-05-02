@@ -1,33 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../flutter_flow/flutter_flow_theme.dart';
-import '../../services/mock_api.dart';
+import '../../models/models.dart';
+import '../../services/api_service.dart';
 import '../../widgets/common.dart';
 
-class PaymentTrackerPage extends StatelessWidget {
+class PaymentTrackerPage extends StatefulWidget {
   final String contractId;
   const PaymentTrackerPage({super.key, required this.contractId});
+  @override
+  State<PaymentTrackerPage> createState() => _PaymentTrackerPageState();
+}
+
+class _PaymentTrackerPageState extends State<PaymentTrackerPage> {
+  Contract? _contract;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      _contract = await ApiService.I.getPayments(widget.contractId);
+    } catch (_) {}
+    if (mounted) setState(() => _loading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = FlutterFlowTheme.of(context);
-    final c = MockApi.I.contracts.firstWhere((x) => x.id == contractId,
-        orElse: () => MockApi.I.contracts.first);
+    if (_loading) {
+      return Scaffold(appBar: AppBar(title: Text(widget.contractId)), body: const Center(child: CircularProgressIndicator()));
+    }
+    if (_contract == null) {
+      return Scaffold(appBar: AppBar(title: Text(widget.contractId)), body: Center(child: Text('Contract not found', style: t.headlineSmall)));
+    }
+    final c = _contract!;
     final total = c.milestones.fold<double>(0, (a, m) => a + m.amount);
     final released = c.milestones.where((m) => m.status == 'Released').fold<double>(0, (a, m) => a + m.amount);
 
     return Scaffold(
-      appBar: AppBar(title: Text(c.id)),
+      appBar: AppBar(title: Text(c.name, overflow: TextOverflow.ellipsis)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           SectionCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(c.name, style: t.headlineSmall),
+            if (c.contractor.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(c.contractor, style: t.bodySmall),
+            ],
             const SizedBox(height: 10),
             Row(children: [
-              _Stat(label: 'Released', value: '₹$released Cr', color: t.success),
+              _Stat(label: 'Released', value: '₹${released.toStringAsFixed(1)} Cr', color: t.success),
               const SizedBox(width: 10),
-              _Stat(label: 'Total', value: '₹$total Cr'),
+              _Stat(label: 'Total', value: '₹${total.toStringAsFixed(1)} Cr'),
             ]),
           ])),
           SectionCard(title: 'Milestone breakdown', child: Column(

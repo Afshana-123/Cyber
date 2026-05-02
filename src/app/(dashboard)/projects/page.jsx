@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Filter, MapPin, Calendar, Loader2, AlertTriangle, ShieldCheck, Plus, X } from 'lucide-react';
+import { Filter, MapPin, Calendar, Loader2, AlertTriangle, ShieldCheck, Plus, X, Search } from 'lucide-react';
 import { useSupabase, timeAgo } from '@/lib/hooks';
 import styles from './page.module.css';
 
@@ -21,6 +21,7 @@ export default function ProjectsPage() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [search, setSearch] = useState('');
 
   const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
@@ -53,19 +54,18 @@ export default function ProjectsPage() {
   };
 
   const getStatusBadge = (status) => {
-    const map = {
-      clean: { cls: 'badge-verified', text: 'Clean' },
-      flagged: { cls: 'badge-flagged', text: 'Flagged' },
-      under_review: { cls: 'badge-pending', text: 'Under Review' },
-      completed: { cls: 'badge-info', text: 'Completed' },
-    };
-    return map[status] || { cls: 'badge-info', text: status || 'Unknown' };
+    switch (status) {
+      case 'flagged': return { text: 'Flagged', cls: 'badge-flagged' };
+      case 'frozen': return { text: 'Frozen', cls: 'badge-flagged' };
+      case 'clean': return { text: 'Clean', cls: 'badge-resolved' };
+      default: return { text: status || 'Unknown', cls: 'badge-pending' };
+    }
   };
 
   const getRiskColor = (score) => {
-    if (score <= 30) return 'var(--color-emerald-500)';
-    if (score <= 60) return 'var(--color-amber-500)';
-    return 'var(--color-red-600)';
+    if (score >= 70) return 'var(--color-red-600)';
+    if (score >= 40) return 'var(--color-amber-500)';
+    return 'var(--color-emerald-500)';
   };
 
   if (loading) {
@@ -76,9 +76,11 @@ export default function ProjectsPage() {
     );
   }
 
-  const projectList = projects || [];
-  const flaggedCount = projectList.filter(p => p.status === 'flagged').length;
-  const cleanCount = projectList.filter(p => p.status === 'clean').length;
+  const projectList = (projects || []).filter(p =>
+    p.name?.toLowerCase().includes(search.toLowerCase()) ||
+    p.contractor_name?.toLowerCase().includes(search.toLowerCase()) ||
+    p.districts?.name?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="page-content">
@@ -93,15 +95,26 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      <div className={`${styles.stats} section-gap`}>
-        <div className={styles.statPill}><span className={styles.statNumber}>{projectList.length}</span> Total Projects</div>
-        <div className={styles.statPill}><span className={styles.statNumber} style={{ color: 'var(--color-emerald-600)' }}>{cleanCount}</span> Clean</div>
-        <div className={styles.statPill}><span className={styles.statNumber} style={{ color: 'var(--color-red-600)' }}>{flaggedCount}</span> Flagged</div>
+      {/* Search */}
+      <div className="section-gap">
+        <div className="card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Search size={18} style={{ color: 'var(--color-slate-400)' }} />
+          <input
+            type="text"
+            placeholder="Search projects, contractors, or districts..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              border: 'none', outline: 'none', width: '100%', fontSize: '14px',
+              background: 'transparent', color: 'var(--color-slate-700)',
+            }}
+          />
+        </div>
       </div>
 
       {projectList.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--color-slate-400)' }}>
-          <p style={{ fontSize: '16px' }}>No projects found in database.</p>
+          <p style={{ fontSize: '16px' }}>No projects found.</p>
         </div>
       ) : (
         <div className="grid-3">
