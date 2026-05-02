@@ -1,44 +1,76 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'models/models.dart';
 
 enum UserRole { none, citizen, auditor, contractor }
-
-String _roleToApiString(UserRole r) {
-  switch (r) {
-    case UserRole.citizen:    return 'public';
-    case UserRole.auditor:    return 'auditor';
-    case UserRole.contractor: return 'contractor';
-    default:                  return 'public';
-  }
-}
 
 class AppState extends ChangeNotifier {
   static final AppState _i = AppState._();
   factory AppState() => _i;
   AppState._();
 
-  UserRole role = UserRole.none;
+  // ── Session ──────────────────────────────────────────────────────────────────
+  UserRole role = UserRole.citizen; // Default to citizen
   String phone = '';
-  String name = '';
-  String district = 'Jhansi';
-  String districtId = 'a1000000-0000-0000-0000-000000000001'; // Jhansi UUID
+  String name = 'Citizen';
+  String district = '';       // human-readable
+  String districtId = '';           // UUID from backend — used in API calls
   String aadhaarLast4 = '';
-  String token = '';
-  bool loggedIn = false;
+  bool loggedIn = true; // Anonymous is considered logged in for citizen app
+  String? token;
+  bool isInitialized = false;
 
-  /// API role string for backend calls
-  String get apiRole => _roleToApiString(role);
+  // ── In-session state (reports submitted this session) ────────────────────────
+  List<Report> myReports = [];
 
-  void setRole(UserRole r) { role = r; notifyListeners(); }
+  // ── Initialization ───────────────────────────────────────────────────────────
+  Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    district = prefs.getString('district') ?? '';
+    districtId = prefs.getString('districtId') ?? '';
+    
+    final reportsJson = prefs.getStringList('myReports') ?? [];
+    myReports = reportsJson.map((r) {
+      try {
+        return Report.fromJson(jsonDecode(r));
+      } catch (_) {
+        return null;
+      }
+    }).where((r) => r != null).cast<Report>().toList();
 
-  void setProfile({required String n, required String d, String a = ''}) {
-    name = n; district = d; aadhaarLast4 = a; loggedIn = true; notifyListeners();
+    isInitialized = true;
+    notifyListeners();
   }
 
-  void setLoginData({required String tok, required String nm, required String dist}) {
-    token = tok; name = nm; district = dist; loggedIn = true; notifyListeners();
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  String get apiRole => 'public'; // Force public for API
+
+  Future<void> setDistrict(String d, String dId) async {
+    district = d;
+    districtId = dId;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('district', district);
+    await prefs.setString('districtId', districtId);
+    notifyListeners();
   }
 
-  void logout() {
-    role = UserRole.none; token = ''; loggedIn = false; notifyListeners();
+  Future<void> addReport(Report r) async {
+    myReports.insert(0, r);
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> reportsJson = myReports.map((r) => jsonEncode(r.toJson())).toList();
+    await prefs.setStringList('myReports', reportsJson);
+    notifyListeners();
+  }
+
+  Future<void> clearDistrict() async {
+    district = '';
+    districtId = '';
+    myReports.clear();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('district');
+    await prefs.remove('districtId');
+    await prefs.remove('myReports');
+    notifyListeners();
   }
 }

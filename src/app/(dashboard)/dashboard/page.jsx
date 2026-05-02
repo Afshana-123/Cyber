@@ -52,7 +52,7 @@ export default function DashboardPage() {
       <div className={styles.welcomeHeader}>
         <div className={styles.welcomeLeft}>
           <div className={styles.welcomeGreeting}>
-            <h1 className={styles.welcomeTitle}>{greeting}, Arjun</h1>
+            <h1 className={styles.welcomeTitle}>{greeting}, Admin</h1>
             <div className={styles.welcomeDate}>
               <Calendar size={14} />
               <span>{dateStr}</span>

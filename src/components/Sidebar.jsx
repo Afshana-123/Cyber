@@ -4,7 +4,8 @@ import Link from 'next/link';
 import {
   LayoutDashboard, FolderOpen, FileText, ArrowLeftRight,
   ShieldAlert, ClipboardList, Eye, Settings, HelpCircle,
-  Hexagon, ChevronDown, Shield, PanelLeftClose, PanelLeftOpen
+  Hexagon, ChevronDown, Shield, PanelLeftClose, PanelLeftOpen,
+  MessageSquareWarning
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
@@ -12,6 +13,7 @@ const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
   { label: 'Projects', icon: FolderOpen, href: '/projects' },
   { label: 'Tenders', icon: FileText, href: '/tenders' },
+  { label: 'Citizen Reports', icon: MessageSquareWarning, href: '/reports' },
   { label: 'Transactions', icon: ArrowLeftRight, href: '/transactions' },
   { label: 'Fraud Detection', icon: ShieldAlert, href: '/auditor', badge: 4 },
   { label: 'Audit Logs', icon: ClipboardList, href: '/audit-logs' },
@@ -35,8 +37,8 @@ export default function Sidebar({ collapsed = false, onToggle }) {
         </div>
         {!collapsed && (
           <div className={styles.sidebarLogoText}>
-            <span className={styles.sidebarBrand}>ChainTrust</span>
-            <span className={styles.sidebarTagline}>Institutional Ledger</span>
+            <span className={styles.sidebarBrand}>TRACE</span>
+            <span className={styles.sidebarTagline}>Gov Fund Intelligence</span>
           </div>
         )}
         <button 
